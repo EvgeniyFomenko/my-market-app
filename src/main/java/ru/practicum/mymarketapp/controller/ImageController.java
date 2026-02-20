@@ -1,5 +1,6 @@
 package ru.practicum.mymarketapp.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
@@ -15,10 +16,12 @@ import java.nio.file.Paths;
 
 @Controller
 public class ImageController {
+    @Value("${path.to.image}")
+    String pathToImage;
 
     @GetMapping("/download/{itemId}")
     public ResponseEntity<Resource> download(@PathVariable int itemId , @RequestParam String fileName) throws MalformedURLException {
-        String line =  "src\\main\\resources\\images\\"+itemId + "\\"+ fileName;
+        String line = pathToImage+"\\" +itemId + "\\"+ fileName;
         Path path = Paths.get(line);
         Resource file = new UrlResource(path.toUri());
 

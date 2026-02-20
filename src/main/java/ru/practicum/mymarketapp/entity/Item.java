@@ -15,6 +15,7 @@ public class Item {
     @Column(name = "img_path")
     private String imgPath;
     private long price;
+    @Transient
     private int count;
 
     public Long getId() {
