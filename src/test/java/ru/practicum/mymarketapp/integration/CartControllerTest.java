@@ -54,6 +54,7 @@ public class CartControllerTest {
         cartItemCount = new CartItemCount();
         cartItemCount.setItemId(item);
         cartItemCount.setOrderId(order);
+        cartItemCount.setQuantity(1);
         cartItemCountRepository.save(cartItemCount);
     }
 
@@ -78,10 +79,17 @@ public class CartControllerTest {
         mockMvc.perform(get("/cart/items"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("<span>0</span>")));
+                .andExpect(content().string(containsString("<span>1</span>")));
         mockMvc.perform(post("/cart/items")
                         .param("id", item.getId().toString())
                         .param("action", "PLUS"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/html;charset=UTF-8"))
+                .andExpect(content().string(containsString("<span>2</span>")));
+
+        mockMvc.perform(post("/cart/items")
+                        .param("id", item.getId().toString())
+                        .param("action", "MINUS"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/html;charset=UTF-8"))
                 .andExpect(content().string(containsString("<span>1</span>")));
@@ -91,7 +99,6 @@ public class CartControllerTest {
                         .param("action", "MINUS"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("<div class=\"row p-2\">\n" +
-                        "            <div class=\"col\">")));
+                .andExpect(content().string(containsString("<div class=\"row p-2\">")));
     }
 }

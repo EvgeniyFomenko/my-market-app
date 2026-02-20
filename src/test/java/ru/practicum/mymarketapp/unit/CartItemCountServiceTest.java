@@ -80,6 +80,10 @@ public class CartItemCountServiceTest {
         Mockito.doReturn(List.of(cartItemCount)).when(cartItemCountRepository).findByOrderId(order);
         cartItemCountService.findCartItemCountByOrderId(order);
     }
-
+    @Test
+    public void findByOrderAndItemId() {
+        Mockito.doReturn(List.of(cartItemCount)).when(cartItemCountRepository).findByOrderId(order);
+        cartItemCountService.findByOrderAndItemId(order, item.getId());
+    }
 
 }

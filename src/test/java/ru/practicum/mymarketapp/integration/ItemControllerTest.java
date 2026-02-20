@@ -28,7 +28,6 @@ public class ItemControllerTest {
     @BeforeEach
     public void setUp() {
         item = new Item();
-        item.setCount(1);
         item.setPrice(100);
         item.setTitle("Auto");
         item.setDescription("Description");
@@ -68,7 +67,7 @@ public class ItemControllerTest {
                 .andExpect(content().contentType("text/html;charset=UTF-8"))
                 .andExpect(content().string(containsString("<h5 class=\"card-title\">Auto</h5>")))
                 .andExpect(content().string(containsString("<p class=\"card-text\">Description</p>")))
-                .andExpect(content().string(containsString("<span>1</span>")));
+                .andExpect(content().string(containsString("<span>0</span>")));
     }
 
 }

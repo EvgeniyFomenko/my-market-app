@@ -80,11 +80,7 @@ public class ItemServiceTest {
         itemService.findById(item.getId());
     }
 
-    @Test
-    public void findByOrderAndItemId() {
-        Mockito.doReturn(List.of(cartItemCount)).when(cartItemCountRepository).findByOrderId(order);
-        itemService.findByOrderAndItemId(order, item.getId());
-    }
+
 
 
 }
