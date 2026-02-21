@@ -1,0 +1,22 @@
+services:
+  api:
+    container_name: my_market_api
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/shop
+      - SPRING_DATASOURCE_USERNAME=back
+      - SPRING_DATASOURCE_PASSWORD=123
+  db:
+    image: postgres
+    container_name: db
+    volumes:
+      - /var/lib/postgresql
+    ports:
+      - "5431:5431"
+    environment:
+      - POSTGRES_DB=shop
+      - POSTGRES_USER=back
+      - POSTGRES_PASSWORD=123
+    #      - TZ=Asia/Yekaterinburg
