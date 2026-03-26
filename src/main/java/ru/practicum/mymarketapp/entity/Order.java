@@ -1,17 +1,15 @@
 package ru.practicum.mymarketapp.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 
-@Entity
-@Table(name = "orders")
+//@Entity
+@Table(name ="orders")
 public class Order {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "generated_counter")
-    @SequenceGenerator(allocationSize = 1, name = "generated_counter")
     private Long id;
     private BigDecimal total;
     private boolean isPaid;
