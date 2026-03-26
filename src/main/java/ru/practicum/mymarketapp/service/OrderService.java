@@ -1,77 +1,92 @@
 package ru.practicum.mymarketapp.service;
 
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.CartItemCount;
+import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
+import ru.practicum.mymarketapp.pojo.Action;
+import ru.practicum.mymarketapp.repository.ItemRepository;
 import ru.practicum.mymarketapp.repository.OrderRepository;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 public class OrderService {
-    private OrderRepository orderRepository;
-    public OrderService(OrderRepository orderRepository) {
+    private final OrderRepository orderRepository;
+    private final ItemRepository itemRepository;
+
+    public OrderService(OrderRepository orderRepository, ItemRepository itemRepository) {
         this.orderRepository = orderRepository;
+        this.itemRepository = itemRepository;
     }
-    public Order findNewOrder() {
-        List<Order> orders = orderRepository.findByIsPaidFalse();
-        Order order = orders.stream().filter(o -> !o.isPaid()).findFirst().orElse(null);
-        if (Objects.isNull(order)) { // Если карзина пустая то создаем новую карзину
-            order = new Order();
-            order.setPaid(false);
-            order.setTotal(new BigDecimal(0));
-            order = addOrder(order);
-        }
-
-        return order;
+    public Mono<Order> findNewOrderOrTakeNew() {
+        return orderRepository.findByIsPaidFalse().take(1)
+                .singleOrEmpty()
+                .switchIfEmpty(Mono.fromSupplier( ()-> {
+            Order orderNew = new Order();
+            orderNew.setPaid(false);
+            orderNew.setTotal(new BigDecimal(0));
+            return orderNew;
+        }).flatMap(orderRepository::save));
     }
 
-    public Order addOrder(Order order) {
+    public Mono<Order> findNewOrder() {
+        return orderRepository.findByIsPaidFalse().take(1)
+                .singleOrEmpty();
+    }
+
+    public Mono<Order> addOrder(Order order) {
         return orderRepository.save(order);
     }
 
-    public void delete(Order order) {
-        orderRepository.delete(order);
+    public Mono<Void> delete(Order order) {
+        return orderRepository.delete(order);
     }
 
-    public List<Order> findPaidOrdersIsPaidTrue() {
+    public Flux<Order> findPaidOrdersIsPaidTrue() {
         return orderRepository.findByIsPaidTrue();
     }
 
     public void updatePaid(Order order) {
         order.setPaid(true);
-        orderRepository.save(order);
+        orderRepository.save(order).subscribe();
     }
 
-    public Order findOrderById(Long id) {
-        return orderRepository.findById(id).orElseThrow();
+    public Mono<Order> findOrderById(Long id) {
+        return orderRepository.findById(id).doOnError((e)-> {throw new RuntimeException(String.format("Карзина c id: %s не найдена",id));});
     }
 
-    public void changePriceOrderByActionOnCartItemCount(Order order, String action, CartItemCount cartItemCount){
-        BigDecimal total = null; //Обновляем стоимость заказа
-        if ("PLUS".equals(action)) {
-            total = order.getTotal().add(new BigDecimal(cartItemCount.getItemId().getPrice()));
-        } else if ("MINUS".equals(action)) {
-            total = order.getTotal().subtract(new BigDecimal(cartItemCount.getItemId().getPrice()));
-            if (total.compareTo(new BigDecimal(0)) == 0 ){
-                if (Objects.nonNull(order.getId())) {
-                    delete(order);
+    public Mono<Order> changePriceOrderByActionOnCartItemCount( String action, CartItemCount cartItemCount){
+       return orderRepository.findById(cartItemCount.getOrderId())
+               .zipWith(itemRepository.findById(cartItemCount.getItemId())).map( tuple2 -> {
+            BigDecimal total = null; //Обновляем стоимость заказа
+                   Order order = tuple2.getT1();
+                   Item item = tuple2.getT2();
+            if (Action.PLUS.getFullName().equals(action)) {
+                total = order.getTotal().add(new BigDecimal(item.getPrice()));
+            }
+            else if (Action.MINUS.getFullName().equals(action)) {
+                total = order.getTotal().subtract(new BigDecimal(item.getPrice()));
+            }
+            else  if (Action.DELETE.getFullName().equals(action)) {
+                total = order.getTotal();
+                if (cartItemCount.getQuantity() == 0){
+                    total = total.subtract(new BigDecimal(item.getPrice()));
+                } else {
+                    total = total.subtract(new BigDecimal(item.getPrice() * cartItemCount.getQuantity()));
                 }
-                return;
             }
-        } else  if ("DELETE".equals(action)) {
-             total = order.getTotal();
-            for (int i = 0; i < cartItemCount.getQuantity(); i++) {
-                total = total.subtract(new BigDecimal(cartItemCount.getItemId().getPrice()));
+
+            if (total.compareTo(new BigDecimal(0)) == 0 ) {
+                 delete(order).subscribe();
+                 return Mono.just(order);
+            } else {
+                order.setTotal(total);
+              return  orderRepository.save(order);
             }
-            if (total.compareTo(new BigDecimal(0)) == 0) {
-                delete(order);
-                return;
-            }
-        }
-        order.setTotal(total);
-        orderRepository.save(order);
+                }
+        ).flatMap(e->e);
     }
 }
