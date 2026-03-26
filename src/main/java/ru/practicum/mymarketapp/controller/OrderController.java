@@ -4,16 +4,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ru.practicum.mymarketapp.entity.Order;
-import ru.practicum.mymarketapp.entity.dto.ItemDto;
+import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.dto.ItemDtoConverter;
-import ru.practicum.mymarketapp.entity.dto.OrderDto;
 import ru.practicum.mymarketapp.entity.dto.OrderDtoConverter;
 import ru.practicum.mymarketapp.service.CartItemCountService;
 import ru.practicum.mymarketapp.service.OrderService;
 
-import java.util.List;
+import java.util.stream.Collectors;
 
 @Controller
 public class OrderController {
@@ -27,33 +24,39 @@ public class OrderController {
     }
 
     @GetMapping("/orders")
-    public String getOrders(Model model) {
-        List<OrderDto> orderDtos = orderService.findPaidOrdersIsPaidTrue().stream()
-                .map(o-> OrderDtoConverter.toDto(o, cartItemCountService.findItemByOrderId(o).stream()
-                                                            .map(ItemDtoConverter::toDto).toList())).toList();
-        model.addAttribute("orders", orderDtos);
-        return "orders";
+    public Mono<String> getOrders(Model model) {
+        return orderService.findPaidOrdersIsPaidTrue()
+                .flatMap(e->
+                         cartItemCountService.findItemByOrderId(e.getId()).collectList().zipWith(Mono.just(e))
+                                .map(p -> OrderDtoConverter.toDto(p.getT2(), p.getT1().stream().map(ItemDtoConverter::toDto)
+                                        .collect(Collectors.toList())))
+                    ).collectList().flatMap(
+                        e-> {
+                            model.addAttribute("orders", e);
+                            return Mono.just("orders");
+                        });
     }
 
     @GetMapping ("/orders/{id}")
-    public String getOrder(@PathVariable Long id, Model model) {
-        Order order = orderService.findOrderById(id);
-        OrderDto orderDto = new OrderDto();
-        List<ItemDto> itemDtos = cartItemCountService.findItemByOrderId(order).stream().map(ItemDtoConverter::toDto).toList();
-        orderDto.setItems(itemDtos);
-        orderDto.setId(order.getId());
-        orderDto.setTotalSum(order.getTotal().longValue());
-        model.addAttribute("order", orderDto);
-        return "order";
+    public Mono<String> getOrder(@PathVariable Long id, Model model) {
+       return orderService.findOrderById(id).flatMap(order ->
+            cartItemCountService.findItemByOrderId(order.getId()).collectList().zipWith(Mono.just(order))
+                    .map(p->
+                        OrderDtoConverter.toDto(p.getT2(), p.getT1().stream().map(ItemDtoConverter::toDto).collect(Collectors.toList()))
+                    ).flatMap(orderDto-> {
+                        model.addAttribute("order", orderDto);
+                        return Mono.just("order");
+                    })
+        );
     }
 
     @PostMapping("/buy")
     @Transactional
-    public String setBuy(RedirectAttributes redirectAttrs) {
-        Order order = orderService.findNewOrder();
-        orderService.updatePaid(order);
-        redirectAttrs.addAttribute("newOrder", true);
-        String redirectUrl = "redirect:orders/"+order.getId();
-        return redirectUrl;
+    public Mono<String> setBuy(Model model) {
+       return orderService.findNewOrderOrTakeNew().doOnNext(orderService::updatePaid)
+                .map(order -> {
+                    model.addAttribute("newOrder", true);
+                    return "redirect:orders/"+order.getId();
+                });
     }
 }
