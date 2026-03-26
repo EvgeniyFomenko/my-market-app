@@ -5,11 +5,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
+import ru.practicum.mymarketapp.PostgresqlTestContainer;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
+import ru.practicum.mymarketapp.pojo.Action;
 import ru.practicum.mymarketapp.repository.CartItemCountRepository;
 import ru.practicum.mymarketapp.repository.ItemRepository;
 import ru.practicum.mymarketapp.repository.OrderRepository;
@@ -18,18 +22,18 @@ import ru.practicum.mymarketapp.repository.OrderRepository;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebTestClient
+@ImportTestcontainers(PostgresqlTestContainer.class)
 public class CartControllerTest {
     @Autowired
     private CartItemCountRepository cartItemCountRepository;
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient webTestClient;
     @Autowired
     private OrderRepository orderRepository;
     @Autowired
@@ -49,56 +53,87 @@ public class CartControllerTest {
         item.setPrice(100);
         item.setTitle("Auto");
         item.setDescription("Description");
-        itemRepository.save(item);
-        order = orderRepository.save(order);
+        item = itemRepository.save(item).block();
+        order = orderRepository.save(order).block();
         cartItemCount = new CartItemCount();
-        cartItemCount.setItemId(item);
-        cartItemCount.setOrderId(order);
+        cartItemCount.setItemId(item.getId());
+        cartItemCount.setOrderId(order.getId());
         cartItemCount.setQuantity(1);
-        cartItemCountRepository.save(cartItemCount);
+        cartItemCountRepository.save(cartItemCount).subscribe();
     }
 
     @AfterEach
-    public void after(){
-        itemRepository.deleteById(item.getId());
-        cartItemCountRepository.deleteById(cartItemCount.getId());
-        orderRepository.deleteById(order.getId());
+    public void after() {
+        itemRepository.deleteById(item.getId()).subscribe();
+        cartItemCountRepository.deleteById(cartItemCount.getId()).subscribe();
+        orderRepository.deleteById(order.getId()).subscribe();
     }
 
     @Test
     public void testGetCartItems() throws Exception {
-        mockMvc.perform(get("/cart/items"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("<h5 class=\"card-title\">Auto</h5>")))
-                .andExpect(content().string(containsString("<p class=\"card-text\">Description</p>")));
+        webTestClient.get().uri("/cart/items")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<h5 class=\"card-title\">Auto</h5>"));
+                    assertTrue(body.contains("<p class=\"card-text\">Description</p>"));
+                });
     }
 
     @Test
-    public void  cartItemsAction() throws Exception {
-        mockMvc.perform(get("/cart/items"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("<span>1</span>")));
-        mockMvc.perform(post("/cart/items")
-                        .param("id", item.getId().toString())
-                        .param("action", "PLUS"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("<span>2</span>")));
+    public void cartItemsAction() throws Exception {
+        webTestClient.get().uri("/cart/items")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<span>1</span>"));
+                    assertTrue(body.contains("<p class=\"card-text\">Description</p>"));
+                });
 
-        mockMvc.perform(post("/cart/items")
-                        .param("id", item.getId().toString())
-                        .param("action", "MINUS"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("<span>1</span>")));
+        webTestClient.post().uri(uriBuidler->uriBuidler.path("/cart/items")
+                        .build())
+                .body(BodyInserters.fromFormData("action", Action.PLUS.getFullName())
+                        .with("id", item.getId().toString()))
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<span>2</span>"));
+                });
 
-        mockMvc.perform(post("/cart/items")
-                        .param("id", item.getId().toString())
-                        .param("action", "MINUS"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType("text/html;charset=UTF-8"))
-                .andExpect(content().string(containsString("<div class=\"row p-2\">")));
+        webTestClient.post().uri(uriBuidler->uriBuidler.path("/cart/items")
+                        .build())
+                .body(BodyInserters.fromFormData("action", Action.MINUS.getFullName())
+                        .with("id", item.getId().toString()))
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<span>1</span>"));
+                });
+
+        webTestClient.post().uri(uriBuidler->uriBuidler.path("/cart/items")
+                        .build())
+                .body(BodyInserters.fromFormData("action", "MINUS")
+                        .with("id", item.getId().toString()))
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<div class=\"row p-2\">"));
+                });
+
     }
 }

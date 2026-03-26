@@ -5,8 +5,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import ru.practicum.mymarketapp.PostgresqlTestContainer;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
@@ -17,14 +19,14 @@ import ru.practicum.mymarketapp.repository.OrderRepository;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
-import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebTestClient
+@ImportTestcontainers(PostgresqlTestContainer.class)
 public class OrderControllerTest {
     @Autowired
     private ItemRepository itemRepository;
@@ -33,7 +35,7 @@ public class OrderControllerTest {
     @Autowired
     private CartItemCountRepository cartItemCountRepository;
     @Autowired
-    private MockMvc mockMvc;
+    private WebTestClient mockMvc;
     private Item item;
     private Order order;
     private CartItemCount cartItemCount;
@@ -42,54 +44,76 @@ public class OrderControllerTest {
     @BeforeEach
     public void setUp() throws SQLException {
         order = new Order();
-        item = new Item();
-        cartItemCount = new CartItemCount();
         order.setTotal(new BigDecimal(200));
-        order.setPaid(true);
+        order.setPaid(false);
+        item = new Item();
         item.setCount(1);
         item.setPrice(100);
         item.setTitle("Auto");
         item.setDescription("Description");
-        cartItemCount.setItemId(item);
-        cartItemCount.setOrderId(order);
+        item = itemRepository.save(item).block();
+        order = orderRepository.save(order).block();
+        cartItemCount = new CartItemCount();
+        cartItemCount.setItemId(item.getId());
+        cartItemCount.setOrderId(order.getId());
         cartItemCount.setQuantity(2);
-        orderRepository.save(order);
-        itemRepository.save(item);
-        cartItemCountRepository.save(cartItemCount);
+        cartItemCount = cartItemCountRepository.save(cartItemCount).block();
     }
 
     @AfterEach
     public void after(){
-        itemRepository.deleteById(item.getId());
-        orderRepository.deleteById(order.getId());
-        cartItemCountRepository.deleteById(cartItemCount.getId());
+        itemRepository.deleteById(item.getId()).subscribe();
+        orderRepository.deleteById(order.getId()).subscribe();
+        cartItemCountRepository.deleteById(cartItemCount.getId()).subscribe();
     }
 
     @Test
-    public void getOrders() throws Exception {
-        mockMvc.perform(get("/orders"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<li class=\"list-group-item\">Auto (2 шт.) 200 руб.</li>")))
-                .andExpect(content().string(containsString("<b>Сумма: 200 руб.</b>")));
+    public void getOrders() {
+        order.setPaid(true);
+        order = orderRepository.save(order).block();
+        mockMvc.get().uri("/orders")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<li class=\"list-group-item\">Auto (2 шт.) 200 руб.</li>"));
+                    assertTrue(body.contains("<b>Сумма: 200 руб.</b>"));
+                });
     }
 
     @Test
-    public void getOrder() throws Exception {
-        mockMvc.perform(get("/orders/{id}", order.getId()))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<h2>Заказ №"+order.getId()+"</h2>")))
-                .andExpect(content().string(containsString("<b>Auto</b>")));
+    public void getOrder() {
+        mockMvc.get().uri("/orders/{id}", order.getId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<h2>Заказ №"+order.getId()+"</h2>"));
+                    assertTrue(body.contains("<b>Auto</b>"));
+                });
     }
 
     @Test
-    public void setBuy() throws Exception {
+    public void setBuy() {
         order.setPaid(false);
         orderRepository.save(order);
-        mockMvc.perform(post("/buy"))
-                .andExpect(status().is3xxRedirection());
-        mockMvc.perform(get("/orders/{id}", order.getId()))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("<h2>Заказ №"+order.getId()+"</h2>")))
-                .andExpect(content().string(containsString("<b>Auto</b>")));
+        mockMvc.post().uri("/buy")
+                .exchange()
+                .expectStatus().is3xxRedirection();
+
+        mockMvc.get().uri("/orders/{id}", order.getId())
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType("text/html")
+                .expectBody(String.class).consumeWith(response -> {
+                    String body = response.getResponseBody();
+                    assertNotNull(body);
+                    assertTrue(body.contains("<h2>Заказ №"+order.getId()+"</h2>"));
+                    assertTrue(body.contains("<b>Auto</b>"));
+                });
     }
 }

@@ -6,13 +6,13 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
 import ru.practicum.mymarketapp.repository.CartItemCountRepository;
-import ru.practicum.mymarketapp.repository.ItemRepository;
 import ru.practicum.mymarketapp.repository.OrderRepository;
-import ru.practicum.mymarketapp.service.ItemService;
 import ru.practicum.mymarketapp.service.OrderService;
 
 import java.math.BigDecimal;
@@ -49,43 +49,43 @@ public class OrderServiceTest {
         item.setDescription("Description");
         cartItemCount = new CartItemCount();
         cartItemCount.setId(3L);
-        cartItemCount.setItemId(item);
-        cartItemCount.setOrderId(order);
+        cartItemCount.setItemId(item.getId());
+        cartItemCount.setOrderId(order.getId());
     }
 
     @Test
-    public void findNewOrder() {
-        Mockito.doReturn(List.of(order)).when(orderRepository).findByIsPaidFalse();
-        orderService.findNewOrder();
+    public void findNewOrderOrTakeNew() {
+        Mockito.doReturn(Flux.just(List.of(order))).when(orderRepository).findByIsPaidFalse();
+        orderService.findNewOrderOrTakeNew();
     }
 
     @Test
     public void addOrder() {
-        Mockito.doReturn(order).when(orderRepository).save(order);
+        Mockito.doReturn(Mono.just(order)).when(orderRepository).save(order);
         orderService.addOrder(order);
     }
 
     @Test
     public void deleteOrder() {
-        Mockito.doNothing().when(orderRepository).delete(order);
+        Mockito.doReturn(Mono.just(Void.class)).when(orderRepository).delete(order);
         orderService.delete(order);
     }
 
     @Test
     public void findPaidOrdersIsPaidTrue() {
-        Mockito.doReturn(List.of(order)).when(orderRepository).findByIsPaidTrue();
+        Mockito.doReturn(Flux.just(List.of(order))).when(orderRepository).findByIsPaidTrue();
         orderService.findPaidOrdersIsPaidTrue();
     }
 
     @Test
     public void updatePaid() {
-        Mockito.doReturn(order).when(orderRepository).save(order);
+        Mockito.doReturn(Mono.just(order)).when(orderRepository).save(order);
         orderService.updatePaid(order);
     }
 
     @Test
     public void findOrderById(){
-        Mockito.doReturn(Optional.of(order)).when(orderRepository).findById(order.getId());
+        Mockito.doReturn(Mono.just(order)).when(orderRepository).findById(order.getId());
         orderService.findOrderById(order.getId());
     }
 

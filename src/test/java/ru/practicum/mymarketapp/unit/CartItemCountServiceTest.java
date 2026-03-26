@@ -6,6 +6,8 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
@@ -40,50 +42,50 @@ public class CartItemCountServiceTest {
         item.setDescription("Description");
         cartItemCount = new CartItemCount();
         cartItemCount.setId(1L);
-        cartItemCount.setItemId(item);
-        cartItemCount.setOrderId(order);
+        cartItemCount.setItemId(item.getId());
+        cartItemCount.setOrderId(order.getId());
     }
 
     @Test
     void findAll() {
-        Mockito.doReturn(List.of(cartItemCount)).when(cartItemCountRepository).findAll();
-        List<CartItemCount> cartItemCountFind = cartItemCountService.findAll();
+        Mockito.doReturn(Flux.just(List.of(cartItemCount))).when(cartItemCountRepository).findAll();
+        List<CartItemCount> cartItemCountFind = cartItemCountService.findAll().collectList().block();
         assertEquals(1, cartItemCountFind.size());
     }
 
     @Test
     void save() {
-        Mockito.doReturn(cartItemCount).when(cartItemCountRepository).save(cartItemCount);
+        Mockito.doReturn(Mono.just(cartItemCount)).when(cartItemCountRepository).save(cartItemCount);
         cartItemCountService.save(cartItemCount);
     }
 
     @Test
     void findByItemIdAndOrderId() {
-        Mockito.doReturn(cartItemCount).when(cartItemCountRepository).findByItemIdAndOrderId(item,order);
-        cartItemCountService.findByItemIdAndOrderId(item, order);
+        Mockito.doReturn(Mono.just(cartItemCount)).when(cartItemCountRepository).findByItemIdAndOrderId(item.getId(),order.getId());
+        cartItemCountService.findByItemIdAndOrderId(item.getId(), order.getId());
     }
 
     @Test
     void deleteTest(){
-        Mockito.doNothing().when(cartItemCountRepository).delete(cartItemCount);
+        Mockito.doReturn(Mono.just(Void.class)).when(cartItemCountRepository).delete(cartItemCount);
         cartItemCountService.delete(cartItemCount);
     }
 
     @Test
     void findItemByOrderIdTest() {
-        Mockito.doReturn(List.of(cartItemCount)).when(cartItemCountRepository).findByOrderId(order);
-        cartItemCountService.findItemByOrderId(order);
+        Mockito.doReturn(Flux.just(List.of(cartItemCount))).when(cartItemCountRepository).findByOrderId(order.getId());
+        cartItemCountService.findItemByOrderId(order.getId());
     }
 
     @Test
     void findCartItemCountByOrderIdTest() {
-        Mockito.doReturn(List.of(cartItemCount)).when(cartItemCountRepository).findByOrderId(order);
-        cartItemCountService.findCartItemCountByOrderId(order);
+        Mockito.doReturn(Flux.just(List.of(cartItemCount))).when(cartItemCountRepository).findByOrderId(order.getId());
+        cartItemCountService.findCartItemCountByOrderId(order.getId());
     }
     @Test
     public void findByOrderAndItemId() {
-        Mockito.doReturn(List.of(cartItemCount)).when(cartItemCountRepository).findByOrderId(order);
-        cartItemCountService.findByOrderAndItemId(order, item.getId());
+        Mockito.doReturn(Flux.just(List.of(cartItemCount))).when(cartItemCountRepository).findByOrderId(order.getId());
+        cartItemCountService.findByOrderAndItemId(order.getId(), item.getId());
     }
 
 }
