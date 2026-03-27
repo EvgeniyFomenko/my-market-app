@@ -6,6 +6,8 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
@@ -51,32 +53,32 @@ public class ItemServiceTest {
         item.setDescription("Description");
         cartItemCount = new CartItemCount();
         cartItemCount.setId(1L);
-        cartItemCount.setItemId(item);
-        cartItemCount.setOrderId(order);
+        cartItemCount.setItemId(item.getId());
+        cartItemCount.setOrderId(order.getId());
     }
 
     @Test
     public void getItems() {
-        Mockito.doReturn(List.of(item)).when(itemRepository).findAll();
-        List<Item> cartItemCountFind = itemService.getItems();
+        Mockito.doReturn(Flux.just(List.of(item))).when(itemRepository).findAll();
+        List<Item> cartItemCountFind = itemService.getItems().collectList().block();
         assertEquals(1, cartItemCountFind.size());
     }
 
     @Test
     public void saveItem() {
-        Mockito.doReturn(item).when(itemRepository).save(item);
+        Mockito.doReturn(Mono.just(item)).when(itemRepository).save(item);
         itemService.saveItem(item);
     }
 
     @Test
     public void updateItem(){
-        Mockito.doReturn(item).when(itemRepository).save(item);
+        Mockito.doReturn(Mono.just(item)).when(itemRepository).save(item);
         itemService.updateItem(item);
     }
 
     @Test
     public void findById() {
-        Mockito.doReturn(Optional.of(item)).when(itemRepository).findById(item.getId());
+        Mockito.doReturn(Mono.just(item)).when(itemRepository).findById(item.getId());
         itemService.findById(item.getId());
     }
 

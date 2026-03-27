@@ -7,7 +7,7 @@
 
     <changeSet id="2" author="gant2">
         <createTable tableName="orders">
-            <column name="id" type="int">
+            <column name="id" type="int" defaultValueSequenceNext="generated_counter">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
             <column name="total" type="decimal"/>

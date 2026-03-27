@@ -4,15 +4,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import ru.practicum.mymarketapp.entity.CartItemCount;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.Item;
-import ru.practicum.mymarketapp.entity.Order;
 import ru.practicum.mymarketapp.repository.ItemRepository;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ItemService {
@@ -25,38 +22,49 @@ public class ItemService {
         this.orderService = orderService;
     }
 
-    public List<Item> getItems() {
+    public Flux<Item> getItems() {
         return itemRepository.findAll();
     }
 
-    public Page <Item> findItemsByTitle(String search, Pageable pageable) {
-        Order order = orderService.findNewOrder();
-        Page<Item> page;
+    public Mono<Page<Item>> findItemsByTitle(String search, Pageable pageable) {
+        Flux<Item> page;
         if (Objects.isNull(search) || search.isBlank()) {
-            page = itemRepository.findAll(pageable);
+            page = itemRepository.findAllBy(pageable);
         } else {
             page = itemRepository.findItemByTitle(search,pageable);
         }
 
-        List<Item> items = page.getContent().stream().peek(item -> {
-            CartItemCount cartItemCount = cartItemCountService.findByItemIdAndOrderId(item, order);
-            if (Objects.nonNull(cartItemCount)) {
-                item.setCount(cartItemCount.getQuantity());
-            }
-        }).collect(Collectors.toList());
-        return new PageImpl<>(items,page.getPageable(),page.getTotalElements());
+        return page.flatMap(item ->
+                orderService.findNewOrder().flatMap(e-> cartItemCountService.findByItemIdAndOrderId(item.getId(),e.getId()))
+                        .map(e-> {
+                            if(e.getItemId().equals(item.getId())) {
+                                item.setCount(e.getQuantity());
+                            }
+                            return item;
+                        }).switchIfEmpty(Mono.just(item))
+        ).collectList()
+                .zipWith(this.itemRepository.count())
+                .map(p -> new PageImpl<>(p.getT1(), pageable, p.getT2()));
     }
 
-    public Item saveItem(Item item) {
+
+    public Mono<Item> saveItem(Item item) {
         return itemRepository.save(item);
     }
 
-    public Item updateItem(Item item) {
+    public Mono<Item> updateItem(Item item) {
         return itemRepository.save(item);
     }
 
-    public Item findById(long id) {
-        return itemRepository.findById(id).orElse(null);
+    public Mono<Item> findById(Long id) {
+        Mono<Item> itemMono = itemRepository.findById(id);
+        return   orderService.findNewOrder().flatMap(e-> cartItemCountService.findByItemIdAndOrderId(id,e.getId())).zipWith(itemMono)
+                .map(e-> {
+                    if(e.getT1().getItemId().equals(id)) {
+                        e.getT2().setCount(e.getT1().getQuantity());
+                    }
+                    return e.getT2();
+                }).switchIfEmpty(itemMono);
     }
 
 

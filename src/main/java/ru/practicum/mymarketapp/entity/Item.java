@@ -1,18 +1,20 @@
 package ru.practicum.mymarketapp.entity;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-@Entity
-@Table
+
+
+@Table(name="item")
 public class Item {
-    @Column
+
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "generated_counter")
-    @SequenceGenerator(allocationSize = 1, name = "generated_counter")
     private Long id;
     private String title;
     private String description;
-    @Column(name = "img_path")
+    @Column("img_path")
     private String imgPath;
     private long price;
     @Transient

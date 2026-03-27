@@ -1,18 +1,24 @@
 package ru.practicum.mymarketapp.dao;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import ru.practicum.mymarketapp.PostgresqlTestContainer;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.repository.ItemRepository;
 
 import java.util.List;
 
 
-@DataJpaTest
+@SpringBootTest
+@Testcontainers
+@ImportTestcontainers(PostgresqlTestContainer.class)
 public class ItemRepositoryTest {
     @Autowired
     ItemRepository itemRepository;
@@ -27,6 +33,11 @@ public class ItemRepositoryTest {
         item.setDescription("Description");
     }
 
+    @AfterEach
+    public void clean() {
+        itemRepository.deleteAll().block();
+    }
+
     @Test
     public void saveItem() {
         Item item = new Item();
@@ -35,7 +46,7 @@ public class ItemRepositoryTest {
         item.setTitle("Item");
         item.setDescription("Description");
         System.out.println("Before safe "+ item.toString());
-        Item saveItem = itemRepository.save(item);
+        Item saveItem = itemRepository.save(item).block();
         Assertions.assertEquals(item,saveItem);
         System.out.println(saveItem.toString());
         System.out.println("After safe" + item.toString());
@@ -43,18 +54,16 @@ public class ItemRepositoryTest {
 
     @Test
     public void deleteItem() {
-        itemRepository.save(item);
-        itemRepository.deleteById(item.getId());
-        List<Item> items = itemRepository.findAll();
+        Item item1 = itemRepository.save(item).block();
+        itemRepository.deleteById(item1.getId()).block();
+        List<Item> items = itemRepository.findAll().collectList().block();
         Assertions.assertEquals(0,items.size());
     }
 
     @Test
     public void findByGetId(){
-        itemRepository.save(item);
-        List<Item> items = itemRepository.findAll();
-        System.out.println("Items count" + items.size());
-        Item findItem = itemRepository.findById(item.getId()).orElse(null);
+        Item item1 = itemRepository.save(item).block();
+        Item findItem = itemRepository.findById(item1.getId()).block();
         Assertions.assertNotNull(findItem);
     }
 }
