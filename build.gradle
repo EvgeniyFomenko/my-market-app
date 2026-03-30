@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.0'
     id 'io.spring.dependency-management' version '1.1.7'
+    id "org.openapi.generator" version "7.12.0"
 }
 
 group = 'ru.practicum'
@@ -26,6 +27,8 @@ repositories {
 
 
 
+
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-liquibase'
     implementation'org.springframework.boot:spring-boot-starter-webflux'
@@ -44,6 +47,30 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.boot:spring-boot-webflux-test")
+
+    //Redis
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+    //OpenApi
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.13'
+
+    openApiGenerate {
+        generatorName.set("spring")
+        inputSpec.set("$projectDir/src/main/resources/api-spec.yaml")
+        outputDir.set("$projectDir/build/generated")
+        modelPackage.set("ru.practicum.pay.domain")
+        apiPackage.set("ru.practicum.pay.api")
+        invokerPackage.set("ru.practicum.pay.client")
+
+
+        configOptions.set([
+                sourceFolder: "src/gen/java/main/codegen",
+                interfaceOnly: "false",
+                library: "web-client",
+                useJakartaEe: "true",
+                useTags: "true",
+                reactive: "true"
+        ])
+    }
 }
 
 tasks.named('test') {
@@ -56,3 +83,4 @@ bootJar {
     archiveBaseName = 'api'
     archiveVersion = ''
 }
+
