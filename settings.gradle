@@ -1,1 +1,3 @@
 rootProject.name = 'my-market-app'
+
+include('main_internet_magazine', 'pay_service')
