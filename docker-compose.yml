@@ -1,13 +1,23 @@
 services:
   api:
     container_name: my_market_api
-    build: .
+    build: ./main_internet_magazine/.
     ports:
       - "8080:8080"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/shop
+      - LIQUIDBASE_DATASOURCE_URL=jdbc:postgresql://db:5432/shop
+      - SPRING_DATASOURCE_URL=r2dbc:postgresql://db:5432/shop
       - SPRING_DATASOURCE_USERNAME=back
       - SPRING_DATASOURCE_PASSWORD=123
+      - REDIS_DATASOURCE_URL=redis
+    depends_on:
+      - db
+      - redis
+  pay-service:
+    container_name: pay-service
+    build: ./pay_service/.
+    ports:
+      - "8081:8080"
   db:
     image: postgres
     container_name: db
@@ -20,3 +30,14 @@ services:
       - POSTGRES_USER=back
       - POSTGRES_PASSWORD=123
     #      - TZ=Asia/Yekaterinburg
+  redis:
+      image: redis:latest
+      container_name: redis
+      ports:
+        - "6379:6379"
+      volumes:
+        - ./redisdata:/data
+      environment:
+        - REDIS_PASSWORD=123
+        - REDIS_USER=user
+        - REDIS_USER_PASSWORD=123
