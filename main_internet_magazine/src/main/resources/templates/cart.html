@@ -49,8 +49,14 @@
                 <form action="/buy" method="post" th:if="${!items.isEmpty()}">
                     <div class="hstack gap-3">
                         <h2 th:text="'Итого: '+${total}+' руб.'"/>
-                        <button class="btn btn-warning ms-auto">Купить</button>
+                        <br>
+                        <h2 th:text="'Баланс: '+${balance}+' руб.'"/>
+                        <button th:if='${balance}  >= ${total}' class="btn btn-warning ms-auto">Купить</button>
                     </div>
+                    <br>
+                    <h5>
+                        <span th:text="((${balance}  >= ${total})? 'Завершите пожалуйста покупку' : 'Недостаточно средств')"></span>
+                    </h5>
                 </form>
             </div>
         </div>
