@@ -10,6 +10,7 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import ru.practicum.mymarketapp.PostgresqlTestContainer;
+import ru.practicum.mymarketapp.RedisTestContainer;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
@@ -28,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@ImportTestcontainers(PostgresqlTestContainer.class)
+@ImportTestcontainers( {PostgresqlTestContainer.class, RedisTestContainer.class })
 public class CartControllerTest {
     @Autowired
     private CartItemCountRepository cartItemCountRepository;

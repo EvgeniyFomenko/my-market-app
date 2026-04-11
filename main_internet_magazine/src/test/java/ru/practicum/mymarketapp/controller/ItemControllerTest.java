@@ -6,19 +6,28 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
+import org.springframework.cache.CacheManager;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import ru.practicum.mymarketapp.RedisTestContainer;
+import ru.practicum.mymarketapp.configuration.RedisCustomCacheConfiguration;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
 import ru.practicum.mymarketapp.pojo.Action;
 import ru.practicum.mymarketapp.pojo.PageCaching;
+import ru.practicum.mymarketapp.pojo.PageableCaching;
 import ru.practicum.mymarketapp.pojo.VariableSort;
 import ru.practicum.mymarketapp.service.CartItemCountService;
 import ru.practicum.mymarketapp.service.ItemService;
@@ -31,6 +40,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @WebFluxTest(ItemController.class)
+@Testcontainers
+@ImportTestcontainers(RedisTestContainer.class)
 public class ItemControllerTest {
 
     @Autowired
@@ -41,6 +52,8 @@ public class ItemControllerTest {
     OrderService orderService;
     @MockitoBean
     ItemService itemService;
+    @MockitoBean
+    CacheManager cacheManager;
 
     static CartItemCount cartItemCount ;
     static Order order ;
@@ -66,7 +79,9 @@ public class ItemControllerTest {
 
     @Test
     public void getItems(){
-        Mockito.when(itemService.findItemsByTitle(null, PagableUtil.getPageable(1,5, VariableSort.NO.getFullName()))).thenReturn(Mono.just(new PageCaching<>(List.of(item))));
+        Pageable pageable = PageRequest.of(1, 5);
+        PageCaching pageCaching = new PageCaching(List.of(item),new PageableCaching(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort().get().findFirst().orElse(new Sort.Order(Sort.Direction.ASC,"unsorted")).getProperty()), 1L);
+        Mockito.when(itemService.findItemsByTitle("", PagableUtil.getPageable(1,5, VariableSort.NO.getFullName()))).thenReturn(Mono.just(pageCaching));
 
         webTestClient.get().uri("/")
                 .exchange()
@@ -93,6 +108,8 @@ public class ItemControllerTest {
         Mockito.when(cartItemCountService.changePriceCartByAction(cartItemCount, Action.PLUS.getFullName())).thenReturn(Mono.just(cartItemCount1));
         Mockito.when(orderService.changePriceOrderByActionOnCartItemCount(Action.PLUS.getFullName(),cartItemCount1)).thenReturn(Mono.just(order));
         Mockito.when(itemService.findById(item.getId())).thenReturn(Mono.just(item));
+        Mockito.when(itemService.cacheItemClear()).thenReturn(Mono.empty());
+        Mockito.when(itemService.cachePageClear()).thenReturn(Mono.empty());
         webTestClient.post().uri(uribuilder ->uribuilder.path("/items").build()).body(BodyInserters.fromFormData("action", Action.PLUS.getFullName())
                         .with("id", item.getId().toString())
                         .with("search","")
@@ -133,6 +150,7 @@ public class ItemControllerTest {
         Mockito.when(cartItemCountService.changePriceCartByAction(cartItemCount, Action.PLUS.getFullName())).thenReturn(Mono.just(cartItemCount1));
         Mockito.when(orderService.changePriceOrderByActionOnCartItemCount(Action.PLUS.getFullName(),cartItemCount1)).thenReturn(Mono.just(order));
         Mockito.when(itemService.findById(item.getId())).thenReturn(Mono.just(item));
+        Mockito.when(itemService.cacheEvict(item.getId())).thenReturn(Mono.empty());
         webTestClient.post().uri(uriBuilder -> uriBuilder.path("/items/" + item.getId().toString()).build() ).body(BodyInserters.fromFormData("action", Action.PLUS.getFullName()))
                 .exchange()
                 .expectStatus().isOk()

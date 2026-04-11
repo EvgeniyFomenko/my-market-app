@@ -1,34 +1,22 @@
-package ru.practicum.mymarketapp.configuration;
+package ru.practicum.mymarketapp.config;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.cache.autoconfigure.RedisCacheManagerBuilderCustomizer;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
-import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.*;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriUtils;
+import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.pojo.PageCaching;
 import ru.practicum.mymarketapp.service.ApiClient;
 import ru.practicum.mymarketapp.service.DefaultApi;
-import tools.jackson.core.JsonGenerator;
-import tools.jackson.databind.DeserializationFeature;
-import tools.jackson.databind.ObjectMapper;
 
-import java.net.URI;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
-@Configuration
+@TestConfiguration
 public class RedisCustomCacheConfiguration {
     @Bean
     public RedisCacheManagerBuilderCustomizer weatherCacheCustomizer() {

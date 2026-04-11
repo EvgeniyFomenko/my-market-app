@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.practicum.mymarketapp.PostgresqlTestContainer;
+import ru.practicum.mymarketapp.RedisTestContainer;
 import ru.practicum.mymarketapp.entity.Order;
 import ru.practicum.mymarketapp.repository.OrderRepository;
 
@@ -15,7 +16,7 @@ import java.math.BigDecimal;
 
 @SpringBootTest
 @Testcontainers
-@ImportTestcontainers(PostgresqlTestContainer.class)
+@ImportTestcontainers( {PostgresqlTestContainer.class, RedisTestContainer.class })
 public class OrderRepositoryTest {
     @Autowired
     OrderRepository orderRepository;

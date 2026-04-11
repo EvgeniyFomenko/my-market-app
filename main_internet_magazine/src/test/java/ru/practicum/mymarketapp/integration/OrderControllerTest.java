@@ -9,6 +9,7 @@ import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import ru.practicum.mymarketapp.PostgresqlTestContainer;
+import ru.practicum.mymarketapp.RedisTestContainer;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
-@ImportTestcontainers(PostgresqlTestContainer.class)
+@ImportTestcontainers( {PostgresqlTestContainer.class, RedisTestContainer.class })
 public class OrderControllerTest {
     @Autowired
     private ItemRepository itemRepository;

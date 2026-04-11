@@ -11,6 +11,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.PostgresqlTestContainer;
+import ru.practicum.mymarketapp.RedisTestContainer;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
@@ -24,7 +25,7 @@ import java.util.Objects;
 
 @SpringBootTest
 @Testcontainers
-@ImportTestcontainers(PostgresqlTestContainer.class)
+@ImportTestcontainers( {PostgresqlTestContainer.class, RedisTestContainer.class })
 public class CartItemCountRepositoryTest {
     @Autowired
     CartItemCountRepository cartItemCountRepository;

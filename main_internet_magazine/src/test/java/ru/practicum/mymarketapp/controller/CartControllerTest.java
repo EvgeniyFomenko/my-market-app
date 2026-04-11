@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -36,6 +37,8 @@ public class CartControllerTest {
     OrderService orderService;
     @MockitoBean
     ItemService itemService;
+    @MockitoBean
+    CacheManager cacheManager;
 
     static CartItemCount cartItemCount ;
     static Order order ;
@@ -89,6 +92,7 @@ public class CartControllerTest {
         Mockito.when(cartItemCountService.changePriceCartByAction(cartItemCount, Action.PLUS.getFullName())).thenReturn(Mono.just(cartItemCount1));
         Mockito.when(orderService.changePriceOrderByActionOnCartItemCount(Action.PLUS.getFullName(),cartItemCount1)).thenReturn(Mono.just(order));
         Mockito.when(itemService.findById(item.getId())).thenReturn(Mono.just(item));
+        Mockito.when(itemService.cacheItemClear()).thenReturn(Mono.empty());
 
         webTestClient.post().uri(uriBuidler->uriBuidler.path("/cart/items")
                         .build())

@@ -10,13 +10,14 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import ru.practicum.mymarketapp.PostgresqlTestContainer;
+import ru.practicum.mymarketapp.RedisTestContainer;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.pojo.Action;
 import ru.practicum.mymarketapp.repository.ItemRepository;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-@ImportTestcontainers(PostgresqlTestContainer.class)
+@ImportTestcontainers( {PostgresqlTestContainer.class, RedisTestContainer.class })
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 public class ItemControllerTest {
