@@ -2,10 +2,11 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.5'
     id 'io.spring.dependency-management' version '1.1.7'
+    id "org.openapi.generator" version "7.21.0"
 }
 
 group = 'ru.practicum'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.0'
 description = 'my-market-app'
 
 java {
@@ -24,8 +25,25 @@ repositories {
     mavenCentral()
 }
 
+openApiGenerate {
+    generatorName.set("java")
+    inputSpec.set("$rootDir/api-spec.yaml")
+    outputDir.set("$projectDir/build/generated")
+    ignoreFileOverride.set("$projectDir/.openapi-generator-ignore")
+    modelPackage.set("ru.practicum.mymarketapp.entity")
+    invokerPackage.set("ru.practicum.mymarketapp.service")
+    apiPackage.set("ru.practicum.mymarketapp.service")
+    configOptions.set([
+            hideGenerationTimestamp: "true",
+            library                : "webclient",
+            useJakartaEe           : "true",
+            useTags                : "true",
+            openApiNullable        : "false",
+            serializableModel      : "true"
+    ])
+}
 
-
+sourceSets.main.java.srcDir "$projectDir/build/generated/src/main"
 
 
 dependencies {
@@ -49,12 +67,18 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.springframework.boot:spring-boot-webflux-test")
+    testImplementation 'com.redis:testcontainers-redis:2.2.2'
+    testImplementation 'com.github.codemonstur:embedded-redis:1.4.3'
 
-    //Redis
+//Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
     implementation('org.springframework.boot:spring-boot-starter-cache')
+    implementation 'org.json:json:20231013'
+    implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
+    implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.13'
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.2'
 
-//    implementation('org.springframework.boot:spring-boot-autoconfigure')
+
 
 }
 
@@ -69,3 +93,6 @@ bootJar {
     archiveVersion = ''
 }
 
+tasks.named('compileJava') {
+    dependsOn(tasks.openApiGenerate)
+}
