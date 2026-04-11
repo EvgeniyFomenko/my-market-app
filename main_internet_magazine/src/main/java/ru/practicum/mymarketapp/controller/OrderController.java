@@ -8,6 +8,7 @@ import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.dto.ItemDtoConverter;
 import ru.practicum.mymarketapp.entity.dto.OrderDtoConverter;
 import ru.practicum.mymarketapp.service.CartItemCountService;
+import ru.practicum.mymarketapp.service.ItemService;
 import ru.practicum.mymarketapp.service.OrderService;
 
 import java.util.stream.Collectors;
@@ -17,10 +18,12 @@ public class OrderController {
 
     private final CartItemCountService cartItemCountService;
     private final OrderService orderService;
+    private final ItemService itemService;
 
-    public OrderController(CartItemCountService cartItemCountService, OrderService orderService) {
+    public OrderController(CartItemCountService cartItemCountService, OrderService orderService, ItemService itemService) {
         this.cartItemCountService = cartItemCountService;
         this.orderService = orderService;
+        this.itemService = itemService;
     }
 
     @GetMapping("/orders")
@@ -53,6 +56,7 @@ public class OrderController {
     @PostMapping("/buy")
     @Transactional
     public Mono<String> setBuy(Model model) {
+        itemService.cachePageClear().subscribe();
        return orderService.findNewOrderOrTakeNew().doOnNext(orderService::updatePaid)
                 .map(order -> {
                     model.addAttribute("newOrder", true);

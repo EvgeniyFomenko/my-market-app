@@ -21,7 +21,10 @@ public class ItemDtoConverter {
 
     public static Item fromDto (ItemDto itemDto) {
         Item item = new Item();
-        item.setId(itemDto.getId());
+        if (Objects.nonNull(itemDto.getId())){
+            item.setId(itemDto.getId());
+        }
+
         item.setTitle(itemDto.getTitle());
         item.setDescription(itemDto.getDescription());
         item.setImgPath(itemDto.getImgPath());

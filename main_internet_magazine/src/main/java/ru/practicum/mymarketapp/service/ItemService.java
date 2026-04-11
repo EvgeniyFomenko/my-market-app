@@ -1,14 +1,15 @@
 package ru.practicum.mymarketapp.service;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.Item;
+import ru.practicum.mymarketapp.entity.Order;
 import ru.practicum.mymarketapp.pojo.PageCaching;
 import ru.practicum.mymarketapp.pojo.PageableCaching;
 import ru.practicum.mymarketapp.repository.ItemRepository;
@@ -39,26 +40,50 @@ public class ItemService {
         } else {
             page = itemRepository.findItemByTitle(search,pageable);
         }
+        Mono<Order> orderMono = orderService.findNewOrder();
 
-        return page.flatMap(item ->
-                orderService.findNewOrder().flatMap(e-> cartItemCountService.findByItemIdAndOrderId(item.getId(),e.getId()))
-                        .map(e-> {
-                            if(e.getItemId().equals(item.getId())) {
-                                item.setCount(e.getQuantity());
-                            }
+        return  page.flatMap(item ->
+                orderMono.flatMap(order-> cartItemCountService.findByItemIdAndOrderId(item.getId(),order.getId()).map(cartItemCountMono -> {
+                            item.setCount(cartItemCountMono.getQuantity());
                             return item;
-                        }).switchIfEmpty(Mono.just(item))
+                        }))
+                        .switchIfEmpty(Mono.just(item))
         ).collectList()
                 .zipWith(this.itemRepository.count())
                 .map(p -> new PageCaching(p.getT1(),new PageableCaching(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort().get().findFirst().orElse(new Sort.Order(Sort.Direction.ASC,"unsorted")).getProperty()), p.getT2()));
 
     }
+    @CacheEvict(
+            value = "Item", // Имя кеша
+            allEntries = true  // Удаление всех записей
+    )
+    public Mono<Void> cacheItemClear(){
+        return Mono.empty();
+    }
 
+    @CacheEvict(
+            value = "Page", // Имя кеша
+            allEntries = true  // Удаление всех записей
+    )
+    public Mono<Void> cachePageClear(){
+        return Mono.empty();
+    }
+    @CacheEvict(
+            value = "Item",
+            key = "#itemId"
+    )
+    public Mono<Void>  cacheEvict(Long itemId){
+        return Mono.empty();
+    }
 
+    @CacheEvict(
+            value = "Item", // Имя кеша
+            key = "#item.id"   // Удаление всех записей
+    )
     public Mono<Item> saveItem(Item item) {
         return itemRepository.save(item);
     }
-
+    @CachePut(value = "Item", key = "#item.id")
     public Mono<Item> updateItem(Item item) {
         return itemRepository.save(item);
     }

@@ -38,17 +38,21 @@ public class CartController {
                 .map(order -> cartItemCountService.findItemByOrderId(order.getId()))
                 .flatMap(Flux::collectList)
                 .map(e -> e.stream().map(ItemDtoConverter::toDto)
-                        .collect(Collectors.toList())).map(e ->
+                        .collect(Collectors.toList())).zipWith(orderService.getBalance()).map(e ->
                         {
-                            model.addAttribute("items", e);
+                            model.addAttribute("balance", e.getT2().getBalance());
+                            model.addAttribute("items", e.getT1());
                             return "cart";
                         }
                 ).switchIfEmpty(getEmptyCart(model));
     }
 
     private Mono<String> getEmptyCart(Model model) {
-        model.addAllAttributes(Map.of("items", new ArrayList<ItemDto>(), "total", 0));
-        return Mono.just("cart");
+      return   orderService.getBalance().map(balance -> {
+            model.addAllAttributes(Map.of("items", new ArrayList<ItemDto>(), "total", 0, "balance", balance.getBalance()));
+            return "cart";
+
+        });
     }
 
     @PostMapping("/cart/items")
@@ -56,21 +60,20 @@ public class CartController {
     public Mono<String> cartItemsAction(Model model, @ModelAttribute FormData formData) {
         Long id = Long.parseLong(formData.getId());
         String action = formData.getAction();
-        return orderService.findNewOrderOrTakeNew().log()
+        itemService.cacheItemClear().subscribe();
+        return orderService.findNewOrderOrTakeNew()
                 .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(),id))
                 .flatMap(cartItemCount1 -> cartItemCountService.changePriceCartByAction(cartItemCount1, action))
                 .flatMap(e -> orderService.changePriceOrderByActionOnCartItemCount(action, e))
                 .flatMap(e -> {
                     model.addAttribute("total", e.getTotal());
                     return cartItemCountService.findItemByOrderId(e.getId()).map(ItemDtoConverter::toDto).collectList();
-                }).map(e -> {
-                    model.addAttribute("items", e);
+                }).zipWith(orderService.getBalance()).map(e ->
+                {
+                    model.addAttribute("balance", e.getT2().getBalance());
+                    model.addAttribute("items", e.getT1());
                     return "cart";
-                }).switchIfEmpty(Mono.just("cart")
-                        .doOnNext(e -> {
-                            model.addAttribute("items", Collections.emptyList());
-                            model.addAttribute("total", 0);
-                        }));
+                }).switchIfEmpty(getEmptyCart(model));
 
 
     }

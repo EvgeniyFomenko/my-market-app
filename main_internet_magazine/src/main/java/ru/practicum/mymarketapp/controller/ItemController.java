@@ -31,7 +31,7 @@ public class ItemController {
     }
 
     @GetMapping({"/", "/items"})
-    public Mono<String> getItems(@RequestParam(required = false,defaultValue = "") String search, @RequestParam(defaultValue = "NO") String sort,
+    public Mono<String> getItems(@RequestParam(required = false, defaultValue = "") String search, @RequestParam(defaultValue = "NO") String sort,
                                  @RequestParam(defaultValue = "1") Integer pageNumber, @RequestParam(defaultValue = "5") Integer pageSize, Model model) {
         Pageable pageable = PagableUtil.getPageable(pageNumber, pageSize, sort);
         return itemService.findItemsByTitle(search, pageable).map(
@@ -64,41 +64,38 @@ public class ItemController {
             sort = VariableSort.NO.getFullName();
         }
         finalSort = sort;
-
+        itemService.cacheItemClear().subscribe();
         return
                 orderService.findNewOrderOrTakeNew()
-                .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(), id)
-                ).log().flatMap(cartItemCount ->
-                        cartItemCountService.changePriceCartByAction(cartItemCount, action)
-                ).log().map(cartItemCount -> {
-                    orderService.changePriceOrderByActionOnCartItemCount(action, cartItemCount).subscribe();
-                    if (cartItemCount.getQuantity() == 0) {
-                        cartItemCountService.delete(cartItemCount).subscribe();
-                        Order order = new Order();
-                        order.setId(cartItemCount.getId());
-                        orderService.delete(order).subscribe();
-                    }
-                    return "redirect:/items?search=" + search + "&sort=" + finalSort + "&pageNumber=" + pageNumber + "&pageSize=" + pageSize;
-                });
+                        .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(), id)
+                        ).flatMap(cartItemCount ->
+                                cartItemCountService.changePriceCartByAction(cartItemCount, action)
+                        ).flatMap(cartItemCount ->
+                            orderService.changePriceOrderByActionOnCartItemCount(action, cartItemCount)
+                        ).map(cartItemCount -> {
+                            itemService.cachePageClear().subscribe();
+                            return "redirect:/items?search=" + search + "&sort=" + finalSort + "&pageNumber=" + pageNumber + "&pageSize=" + pageSize;
+                        });
 
     }
 
     @GetMapping("/items/{id}")
     public Mono<String> getItem(@PathVariable Long id, Model model) {
-       return itemService.findById(id).flatMap(item -> {
+        return itemService.findById(id).flatMap(item -> {
             model.addAttribute("item", ItemDtoConverter.toDto(item));
             return Mono.just("item");
         }).switchIfEmpty(Mono.error(new RuntimeException("item not found")));
     }
 
     @PostMapping("/items/{id}")
-    public Mono<String> postItemAction(@PathVariable Long id, @ModelAttribute FormData formData,Model model) {
+    public Mono<String> postItemAction(@PathVariable Long id, @ModelAttribute FormData formData, Model model) {
         String action = formData.getAction();
+        itemService.cacheEvict(id).subscribe();
         return orderService.findNewOrderOrTakeNew()
                 .flatMap(p -> cartItemCountService.createOrFindByOrderAndItemId(p.getId(), id)
-                ).log().flatMap(cartItemCount ->
+                ).flatMap(cartItemCount ->
                         cartItemCountService.changePriceCartByAction(cartItemCount, action)
-                ).log().map(cartItemCount -> {
+                ).map(cartItemCount -> {
                     orderService.changePriceOrderByActionOnCartItemCount(action, cartItemCount).subscribe();
                     if (cartItemCount.getQuantity() == 0) {
                         cartItemCountService.delete(cartItemCount).subscribe();
@@ -107,9 +104,24 @@ public class ItemController {
                         orderService.delete(order).subscribe();
                     }
                     return cartItemCount;
-                }).flatMap(e-> itemService.findById(id)).flatMap(item -> { model.addAttribute("item", ItemDtoConverter.toDto(item));
-                    return Mono.just("item");
-                }
+                }).flatMap(e -> itemService.findById(id)).flatMap(item -> {
+                            model.addAttribute("item", ItemDtoConverter.toDto(item));
+                            return Mono.just("item");
+                        }
                 ).switchIfEmpty(Mono.error(new RuntimeException("item not found")));
+    }
+
+    @PostMapping("/item/add")
+    public Mono<String> addItem(@ModelAttribute ItemDto itemDto, Model model) {
+        return itemService.saveItem(ItemDtoConverter.fromDto(itemDto)).map(item -> {
+            model.addAttribute("item", ItemDtoConverter.toDto(item));
+            return "redirect:/items/" + item.getId();
+        });
+    }
+
+    @GetMapping("/item/add")
+    public Mono<String> getAddItem(Model model) {
+        model.addAttribute("item", new ItemDto());
+        return Mono.just("addItem");
     }
 }

@@ -42,14 +42,21 @@ public class CartItemCountService {
     public Flux<Item> findItemByOrderId(Long order) {
         return cartItemCountRepository.findByOrderId(order)
                 .flatMap(e ->
-                    itemRepository.findById(e.getItemId()).doOnNext(item -> item.setCount(e.getQuantity()))
+                    itemRepository.findById(e.getItemId()).map(item -> {item.setCount(e.getQuantity());
+                    return item;})
                 );
 
     }
 
+    /**
+     * Увеличиваем , уменьшаем или удаляем Item из корзины
+     * @param cartItemCount
+     * @param action
+     * @return
+     */
     public Mono<CartItemCount> changePriceCartByAction(CartItemCount cartItemCount, String action) {
       return Mono.just(cartItemCount)
-                .map(cartItemCount1->{
+                .flatMap(cartItemCount1->{
                     if (Action.PLUS.getFullName().equals(action) || Action.MINUS.getFullName().equals(action)) {
                         cartItemCount1.setQuantity(Action.PLUS.getFullName().equals(action) ? cartItemCount1.getQuantity() + 1 : cartItemCount1.getQuantity() - 1);
                         if (cartItemCount1.getQuantity() == 0) {
@@ -61,7 +68,7 @@ public class CartItemCountService {
                         delete(cartItemCount1).subscribe();
                     }
                     return Mono.just(cartItemCount1) ;
-                }).flatMap(e-> e);
+                });
     }
 
     public Flux<CartItemCount> findCartItemCountByOrderId(Long order) {
@@ -80,6 +87,7 @@ public class CartItemCountService {
                             CartItemCount cartItemCountNew = new CartItemCount();
                             cartItemCountNew.setItemId(item);
                             cartItemCountNew.setOrderId(order);
+                            cartItemCountNew.setQuantity(0);
                             return cartItemCountNew;
                         }).flatMap(this::save));
     }
