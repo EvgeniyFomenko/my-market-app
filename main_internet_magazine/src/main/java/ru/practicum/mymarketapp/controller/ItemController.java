@@ -64,19 +64,16 @@ public class ItemController {
             sort = VariableSort.NO.getFullName();
         }
         finalSort = sort;
-        itemService.cacheItemClear().subscribe();
-        return
-                orderService.findNewOrderOrTakeNew()
-                        .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(), id)
+        return itemService.cacheItemClear().then(orderService.findNewOrderOrTakeNew())
+        .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(), id)
                         ).flatMap(cartItemCount ->
                                 cartItemCountService.changePriceCartByAction(cartItemCount, action)
                         ).flatMap(cartItemCount ->
                             orderService.changePriceOrderByActionOnCartItemCount(action, cartItemCount)
-                        ).map(cartItemCount -> {
-                            itemService.cachePageClear().subscribe();
-                            return "redirect:/items?search=" + search + "&sort=" + finalSort + "&pageNumber=" + pageNumber + "&pageSize=" + pageSize;
+                        ).flatMap(cartItemCount -> {
+                           String redirect = "redirect:/items?search=" + search + "&sort=" + finalSort + "&pageNumber=" + pageNumber + "&pageSize=" + pageSize;
+                           return itemService.cachePageClear().thenReturn(redirect);
                         });
-
     }
 
     @GetMapping("/items/{id}")
@@ -90,21 +87,17 @@ public class ItemController {
     @PostMapping("/items/{id}")
     public Mono<String> postItemAction(@PathVariable Long id, @ModelAttribute FormData formData, Model model) {
         String action = formData.getAction();
-        itemService.cacheEvict(id).subscribe();
-        return orderService.findNewOrderOrTakeNew()
+       return   itemService.cacheEvict(id).then(orderService.findNewOrderOrTakeNew())
                 .flatMap(p -> cartItemCountService.createOrFindByOrderAndItemId(p.getId(), id)
                 ).flatMap(cartItemCount ->
                         cartItemCountService.changePriceCartByAction(cartItemCount, action)
-                ).map(cartItemCount -> {
-                    orderService.changePriceOrderByActionOnCartItemCount(action, cartItemCount).subscribe();
-                    if (cartItemCount.getQuantity() == 0) {
-                        cartItemCountService.delete(cartItemCount).subscribe();
-                        Order order = new Order();
-                        order.setId(cartItemCount.getId());
-                        orderService.delete(order).subscribe();
-                    }
-                    return cartItemCount;
-                }).flatMap(e -> itemService.findById(id)).flatMap(item -> {
+                ).map(cartItemCount ->
+                    orderService.changePriceOrderByActionOnCartItemCount(action, cartItemCount).thenReturn(cartItemCount)
+                ).map(cartItemCount -> cartItemCount.filter(e-> e.getQuantity()==0)
+                            .flatMap(e-> cartItemCountService.delete(e)
+                                    .then(orderService.deleteById(e.getOrderId()))
+                                    .thenReturn(e))
+               ) .flatMap(e -> itemService.findById(id)).flatMap(item -> {
                             model.addAttribute("item", ItemDtoConverter.toDto(item));
                             return Mono.just("item");
                         }

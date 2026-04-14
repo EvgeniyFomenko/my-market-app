@@ -60,8 +60,7 @@ public class CartController {
     public Mono<String> cartItemsAction(Model model, @ModelAttribute FormData formData) {
         Long id = Long.parseLong(formData.getId());
         String action = formData.getAction();
-        itemService.cacheItemClear().subscribe();
-        return orderService.findNewOrderOrTakeNew()
+        return itemService.cacheItemClear().then(orderService.findNewOrderOrTakeNew())
                 .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(),id))
                 .flatMap(cartItemCount1 -> cartItemCountService.changePriceCartByAction(cartItemCount1, action))
                 .flatMap(e -> orderService.changePriceOrderByActionOnCartItemCount(action, e))

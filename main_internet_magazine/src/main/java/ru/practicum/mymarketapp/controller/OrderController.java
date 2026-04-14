@@ -56,11 +56,12 @@ public class OrderController {
     @PostMapping("/buy")
     @Transactional
     public Mono<String> setBuy(Model model) {
-        itemService.cachePageClear().subscribe();
-       return orderService.findNewOrderOrTakeNew().doOnNext(orderService::updatePaid)
-                .map(order -> {
-                    model.addAttribute("newOrder", true);
-                    return "redirect:orders/"+order.getId();
-                });
+
+       return itemService.cachePageClear().then(orderService.findNewOrderOrTakeNew()).flatMap(order ->
+                    orderService.updatePaid(order).thenReturn(order)
+               ).map(order-> {
+           model.addAttribute("newOrder", true);
+           return "redirect:orders/"+order.getId();
+       });
     }
 }

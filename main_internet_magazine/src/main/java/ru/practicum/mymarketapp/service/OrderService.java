@@ -12,7 +12,6 @@ import ru.practicum.mymarketapp.repository.OrderRepository;
 
 
 import java.math.BigDecimal;
-import java.util.Objects;
 
 @Service
 public class OrderService {
@@ -50,6 +49,11 @@ public class OrderService {
         return orderRepository.delete(order);
     }
 
+    public Mono<Void> deleteById(long order) {
+        return orderRepository.findById(order).flatMap(e->  orderRepository.delete(e).then());
+    }
+
+
     public Flux<Order> findPaidOrdersIsPaidTrue() {
         return orderRepository.findByIsPaidTrue();
     }
@@ -57,9 +61,8 @@ public class OrderService {
     public Mono<Void> updatePaid(Order order) {
         Quantity newQuantity = new Quantity().quantity(order.getTotal().toString());
         order.setPaid(true);
-        defaultApi.toPayPost(newQuantity).subscribe();
-        orderRepository.save(order).subscribe();
-        return Mono.empty();
+
+        return defaultApi.toPayPost(newQuantity).then(orderRepository.save(order)).thenEmpty(Mono.empty()) ;
     }
 
     public Mono<Balance> getBalance() {
