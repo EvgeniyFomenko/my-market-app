@@ -54,6 +54,9 @@ dependencies {
     implementation'org.postgresql:r2dbc-postgresql:1.1.1.RELEASE'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation'org.postgresql:postgresql'
+    implementation'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 
     //test
     testImplementation 'org.springframework.boot:spring-boot-webtestclient'

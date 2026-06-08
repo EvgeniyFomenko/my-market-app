@@ -1,4 +1,4 @@
-package ru.practicum.pay_service;
+package ru.practicum.pay.server;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

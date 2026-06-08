@@ -2,6 +2,7 @@ package ru.practicum.mymarketapp.configuration;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.cache.autoconfigure.RedisCacheManagerBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,6 +31,8 @@ import java.time.temporal.ChronoUnit;
 
 @Configuration
 public class RedisCustomCacheConfiguration {
+    @Value("${api.base.url}")
+    String apiBaseUrl;
     @Bean
     public RedisCacheManagerBuilderCustomizer weatherCacheCustomizer() {
         return builder -> builder.withCacheConfiguration(
@@ -56,7 +59,7 @@ public class RedisCustomCacheConfiguration {
     public DefaultApi defaultApi() {
         DefaultApi defaultApi = new DefaultApi();
         ApiClient apiClient = new ApiClient();
-        defaultApi.setApiClient(apiClient.setBasePath("http://pay-service:8080"));
+        defaultApi.setApiClient(apiClient.setBasePath(apiBaseUrl));
         return  defaultApi;
     }
 

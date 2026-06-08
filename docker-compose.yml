@@ -10,6 +10,10 @@ services:
       - SPRING_DATASOURCE_USERNAME=back
       - SPRING_DATASOURCE_PASSWORD=123
       - REDIS_DATASOURCE_URL=redis
+      - URL_AUTH_PROVIDER = http://192.168.1.4:30238/realms/master
+      - CLIENT_SECRET_CODE = I3jPV3KhJl2vkCW5qK9SwaAwz0PkY7rG
+      - CLIENT_SECRET_ID = yandex-test
+      - CLIENT_SECRET_PROVIDER = keycloak
     depends_on:
       - db
       - redis
@@ -24,7 +28,7 @@ services:
     volumes:
       - /var/lib/postgresql
     ports:
-      - "5431:5431"
+      - "5431:5432"
     environment:
       - POSTGRES_DB=shop
       - POSTGRES_USER=back
