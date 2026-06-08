@@ -18,9 +18,13 @@
                     <h2>
                         <span class="badge text-bg-success">Витрина магазина</span>
                     </h2>
-                    <a href="/orders" class="btn btn-secondary ms-auto bi bi-file-earmark-text"> Заказы</a>
-                    <a href="/cart/items" class="btn btn-secondary bi bi-cart4"> Корзина</a>
-                    <a href="/item/add" class="btn btn-secondary bi bi-file-earmark-text"> Создать товар</a>
+                    <a href="/orders"  th:if="${isLogin}" class="btn btn-secondary ms-auto bi bi-file-earmark-text"> Заказы</a>
+                    <a href="/cart/items"  th:if="${isLogin}" class="btn btn-secondary bi bi-cart4"> Корзина</a>
+                    <a href="/item/add"  th:if="${isLogin}" class="btn btn-secondary bi bi-file-earmark-text"> Создать товар</a>
+                    <a href="/login" th:if="${!isLogin}"  class="btn btn-secondary bi bi-file-earmark-text"> Войти</a>
+                    <form method="POST" th:action="@{/logout}">
+                        <button type="submit" th:if="${isLogin}" class="btn btn-secondary bi bi-file-earmark-text">Выйти</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -70,10 +74,10 @@
                                 <input type="hidden" name="sort" th:value="${sort}">
                                 <input type="hidden" name="pageSize" th:value="${paging.pageSize()}">
                                 <input type="hidden" name="pageNumber" th:value="${paging.pageNumber()}">
-                                <button type="submit" class="btn btn-outline-secondary" name="action" value="MINUS">-</button>
+                                <button type="submit"  th:if="${isLogin}" class="btn btn-outline-secondary" name="action" value="MINUS">-</button>
                                 <span th:text="${item.getCount()}"></span>
-                                <button type="submit" class="btn btn-outline-secondary" name="action" value="PLUS">+</button>
-                                <button type="submit" class="btn btn-warning ms-auto bi bi-cart4" name="action" value="PLUS" th:if="${item.getCount()==0}"></button>
+                                <button type="submit"  th:if="${isLogin}" class="btn btn-outline-secondary" name="action" value="PLUS">+</button>
+                                <button type="submit"  class="btn btn-warning ms-auto bi bi-cart4" name="action" value="PLUS" th:if="${item.getCount()==0 && isLogin}"></button>
                             </div>
                         </form>
                     </div>

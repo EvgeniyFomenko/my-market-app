@@ -27,7 +27,7 @@
             <div class="card">
                 <h1 class="badge text-bg-success">Создание товара</h1>
                 <div class="card-body">
-                        <form action="/item/add" method="post" th:object="${item}">
+                        <form action="/item/add" method="post" th:object="${item}" th:if="${#authorization.expression('isAuthenticated()')}">>
                             <label for = "${title}" class="col-sm-2 col-form-label">Название</label>
                             <input type="text" class="form-control"  id="${title}" th:field="*{title}"/>
                             <br>
@@ -38,6 +38,9 @@
                             <input type="text" class="form-control" id="${price}" th:field="*{price}"/>
                             <br>
                             <button type="submit" class="btn btn-primary mb-3"> Создать </button>
+                            <input type="hidden"
+                                   name="${_csrf.parameterName}"
+                                   value="${_csrf.token}"/>
                         </form></h5>
                 </div>
             </div>
