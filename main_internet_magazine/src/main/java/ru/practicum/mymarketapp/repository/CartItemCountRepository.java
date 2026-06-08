@@ -12,7 +12,7 @@ import ru.practicum.mymarketapp.entity.Order;
 
 
 import java.util.List;
-@Repository
+
 public interface CartItemCountRepository extends R2dbcRepository<CartItemCount,Long> {
     Flux<CartItemCount> findByOrderId(Long orderId);
     Mono<CartItemCount> findByItemIdAndOrderId(Long itemId, Long orderId);

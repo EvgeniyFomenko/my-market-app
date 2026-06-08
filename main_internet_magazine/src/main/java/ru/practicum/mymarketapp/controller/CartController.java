@@ -1,6 +1,7 @@
 package ru.practicum.mymarketapp.controller;
 
 
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +34,9 @@ public class CartController {
     }
 
     @GetMapping("/cart/items")
-    public Mono<String> cartItems(Model model) {
-        return orderService.findNewOrderOrTakeNew().doOnNext(order -> model.addAttribute("total", order.getTotal()))
+    public Mono<String> cartItems(Model model, Authentication authentication) {
+        String userLogin = authentication.getName();
+        return orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin).doOnNext(order -> model.addAttribute("total", order.getTotal()))
                 .map(order -> cartItemCountService.findItemByOrderId(order.getId()))
                 .flatMap(Flux::collectList)
                 .map(e -> e.stream().map(ItemDtoConverter::toDto)
@@ -57,10 +59,11 @@ public class CartController {
 
     @PostMapping("/cart/items")
     @Transactional
-    public Mono<String> cartItemsAction(Model model, @ModelAttribute FormData formData) {
+    public Mono<String> cartItemsAction(Model model, @ModelAttribute FormData formData, Authentication authentication) {
         Long id = Long.parseLong(formData.getId());
         String action = formData.getAction();
-        return itemService.cacheItemClear().then(orderService.findNewOrderOrTakeNew())
+        String userLogin = authentication.getName();
+        return itemService.cacheItemClear().then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin))
                 .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(),id))
                 .flatMap(cartItemCount1 -> cartItemCountService.changePriceCartByAction(cartItemCount1, action))
                 .flatMap(e -> orderService.changePriceOrderByActionOnCartItemCount(action, e))
