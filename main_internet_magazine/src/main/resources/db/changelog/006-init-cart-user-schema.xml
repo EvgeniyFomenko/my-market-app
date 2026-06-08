@@ -5,11 +5,11 @@
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="6" author="gant2">
-            <createTable tableName="user_cart">
+            <createTable tableName="cart_user">
                 <column name="id" type="int" defaultValueSequenceNext="generated_counter">
                     <constraints primaryKey="true" nullable="false"/>
                 </column>
-                <column name="order_id" type="int"/>
+                <column name="cart_id" type="int"/>
                 <column name="user_id" type="int"/>
             </createTable>
     </changeSet>

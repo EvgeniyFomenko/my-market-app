@@ -4,13 +4,13 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="5" author="gant2">
-        <createTable ifNotExists="true" tableName="users">
+        <changeSet id="7" author="gant2">
+        <createTable ifNotExists="true" tableName="user_role">
             <column name="id" type="int" defaultValueSequenceNext="generated_counter">
                 <constraints primaryKey="true" nullable="false"/>
             </column>
-            <column name="login" type="varchar"/>
-            <column name="password" type="varchar"/>
+            <column name="user_id" type="int"/>
+            <column name="role" type="varchar"/>
         </createTable>
     </changeSet>
 </databaseChangeLog>
