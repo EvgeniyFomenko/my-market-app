@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import ru.practicum.mymarketapp.entity.Order;
 
-@Repository
+
 public interface OrderRepository extends R2dbcRepository<Order,Long> {
     Flux<Order> findByIsPaidTrue();
     Flux<Order> findByIsPaidFalse();

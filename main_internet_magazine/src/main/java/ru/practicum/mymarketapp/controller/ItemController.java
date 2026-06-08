@@ -1,12 +1,12 @@
 package ru.practicum.mymarketapp.controller;
 
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-import ru.practicum.mymarketapp.entity.Order;
 import ru.practicum.mymarketapp.entity.dto.ItemDto;
 import ru.practicum.mymarketapp.entity.dto.ItemDtoConverter;
 import ru.practicum.mymarketapp.pojo.FormData;
@@ -32,9 +32,16 @@ public class ItemController {
 
     @GetMapping({"/", "/items"})
     public Mono<String> getItems(@RequestParam(required = false, defaultValue = "") String search, @RequestParam(defaultValue = "NO") String sort,
-                                 @RequestParam(defaultValue = "1") Integer pageNumber, @RequestParam(defaultValue = "5") Integer pageSize, Model model) {
+                                 @RequestParam(defaultValue = "1") Integer pageNumber, @RequestParam(defaultValue = "5") Integer pageSize, Model model, Authentication authentication) {
         Pageable pageable = PagableUtil.getPageable(pageNumber, pageSize, sort);
-        return itemService.findItemsByTitle(search, pageable).map(
+        String userLogin = "";
+        boolean hasLogin = false;
+        if(authentication != null) {
+           userLogin = authentication.getName();
+           hasLogin = true;
+        }
+        model.addAttribute("isLogin", hasLogin);
+        return itemService.findItemsByTitle(search, pageable, userLogin).map(
                 page -> {
                     List<ItemDto> items = page.getContent().stream().map(ItemDtoConverter::toDto).toList();
                     Paging paging = new Paging(page.hasNext(), page.hasPrevious(), pageNumber, pageSize);
@@ -48,8 +55,8 @@ public class ItemController {
 
     @Transactional
     @PostMapping("/items")
-    public Mono<String> postItemsCart(@ModelAttribute FormData formData) {
-
+    public Mono<String> postItemsCart(@ModelAttribute FormData formData, Authentication authentication) {
+        String userLogin = authentication.getName();
         String idStr = formData.getId();
         String action = formData.getAction();
         String search = formData.getSearch();
@@ -64,7 +71,7 @@ public class ItemController {
             sort = VariableSort.NO.getFullName();
         }
         finalSort = sort;
-        return itemService.cacheItemClear().then(orderService.findNewOrderOrTakeNew())
+        return itemService.cacheItemClear().then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin))
         .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(), id)
                         ).flatMap(cartItemCount ->
                                 cartItemCountService.changePriceCartByAction(cartItemCount, action)
@@ -85,9 +92,10 @@ public class ItemController {
     }
 
     @PostMapping("/items/{id}")
-    public Mono<String> postItemAction(@PathVariable Long id, @ModelAttribute FormData formData, Model model) {
+    public Mono<String> postItemAction(@PathVariable Long id, @ModelAttribute FormData formData, Model model, Authentication authentication) {
         String action = formData.getAction();
-       return   itemService.cacheEvict(id).then(orderService.findNewOrderOrTakeNew())
+        String userLogin = authentication.getName();
+       return   itemService.cacheEvict(id).then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin))
                 .flatMap(p -> cartItemCountService.createOrFindByOrderAndItemId(p.getId(), id)
                 ).flatMap(cartItemCount ->
                         cartItemCountService.changePriceCartByAction(cartItemCount, action)

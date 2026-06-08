@@ -18,11 +18,36 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ItemRepository itemRepository;
     private final DefaultApi defaultApi;
+    private final CarUserService carUserService;
 
-    public OrderService(OrderRepository orderRepository, ItemRepository itemRepository, DefaultApi defaultApi) {
+    public OrderService(OrderRepository orderRepository, ItemRepository itemRepository, DefaultApi defaultApi, CarUserService carUserService) {
         this.orderRepository = orderRepository;
         this.itemRepository = itemRepository;
         this.defaultApi = defaultApi;
+        this.carUserService = carUserService;
+    }
+
+    public Mono<Order> findNewOrderOrTakeNewByUserLoginOrNew(String userLogin) {
+
+        return   this.findNewOrderOrTakeNewByUserLogin(userLogin)
+                .switchIfEmpty(Mono.fromSupplier(() -> {
+                            Order orderNew = new Order();
+                            orderNew.setPaid(false);
+                            orderNew.setTotal(BigDecimal.ZERO);
+                            return orderNew;
+                        }
+                )
+                        .flatMap(orderRepository::save)
+                .flatMap(order -> carUserService.setOrder(userLogin, order))
+                .flatMap(cartUser-> orderRepository.findById(cartUser.getCartId())));
+    }
+
+
+    public Mono<Order> findNewOrderOrTakeNewByUserLogin(String userLogin) {
+        return  carUserService.getCartUserByUserLogin(userLogin)
+                .flatMap(e-> orderRepository.findById(e.getCartId()))
+                .filter(order->!order.isPaid())
+                .singleOrEmpty();
     }
 
     public Mono<Order> findNewOrderOrTakeNew() {

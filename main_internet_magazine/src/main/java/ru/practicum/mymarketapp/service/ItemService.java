@@ -33,14 +33,14 @@ public class ItemService {
     @Cacheable(
             value = "Page",
             key = "#pageable")
-    public Mono<PageCaching> findItemsByTitle(String search, Pageable pageable) {
+    public Mono<PageCaching> findItemsByTitle(String search, Pageable pageable, String userLogin) {
         Flux<Item> page;
         if (Objects.isNull(search) || search.isBlank()) {
             page = itemRepository.findAllBy(pageable);
         } else {
             page = itemRepository.findItemByTitle(search,pageable);
         }
-        Mono<Order> orderMono = orderService.findNewOrder();
+        Mono<Order> orderMono = orderService.findNewOrderOrTakeNewByUserLogin(userLogin);
 
         return  page.flatMap(item ->
                 orderMono.flatMap(order-> cartItemCountService.findByItemIdAndOrderId(item.getId(),order.getId()).map(cartItemCountMono -> {

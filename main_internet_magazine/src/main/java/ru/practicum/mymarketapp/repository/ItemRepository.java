@@ -8,7 +8,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.Item;
 
-@Repository
+
 public interface ItemRepository extends R2dbcRepository<Item, Long> {
     Flux<Item> findItemByTitle(String search, Pageable pageable);
 

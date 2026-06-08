@@ -1,5 +1,6 @@
 package ru.practicum.mymarketapp.controller;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -27,13 +28,14 @@ public class OrderController {
     }
 
     @GetMapping("/orders")
-    public Mono<String> getOrders(Model model) {
-        return orderService.findPaidOrdersIsPaidTrue()
+    public Mono<String> getOrders(Model model, Authentication authentication) {
+        String userLogin = authentication.getName();
+        return orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin)
                 .flatMap(e->
                          cartItemCountService.findItemByOrderId(e.getId()).collectList().zipWith(Mono.just(e))
                                 .map(p -> OrderDtoConverter.toDto(p.getT2(), p.getT1().stream().map(ItemDtoConverter::toDto)
                                         .collect(Collectors.toList())))
-                    ).collectList().flatMap(
+                    ).flatMap(
                         e-> {
                             model.addAttribute("orders", e);
                             return Mono.just("orders");
@@ -55,9 +57,9 @@ public class OrderController {
 
     @PostMapping("/buy")
     @Transactional
-    public Mono<String> setBuy(Model model) {
-
-       return itemService.cachePageClear().then(orderService.findNewOrderOrTakeNew()).flatMap(order ->
+    public Mono<String> setBuy(Model model, Authentication authentication) {
+        String userLogin = authentication.getName();
+       return itemService.cachePageClear().then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin)).flatMap(order ->
                     orderService.updatePaid(order).thenReturn(order)
                ).map(order-> {
            model.addAttribute("newOrder", true);

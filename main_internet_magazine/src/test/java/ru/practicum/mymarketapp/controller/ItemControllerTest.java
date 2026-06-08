@@ -81,7 +81,7 @@ public class ItemControllerTest {
     public void getItems(){
         Pageable pageable = PageRequest.of(1, 5);
         PageCaching pageCaching = new PageCaching(List.of(item),new PageableCaching(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort().get().findFirst().orElse(new Sort.Order(Sort.Direction.ASC,"unsorted")).getProperty()), 1L);
-        Mockito.when(itemService.findItemsByTitle("", PagableUtil.getPageable(1,5, VariableSort.NO.getFullName()))).thenReturn(Mono.just(pageCaching));
+        Mockito.when(itemService.findItemsByTitle("", PagableUtil.getPageable(1,5, VariableSort.NO.getFullName()), "user")).thenReturn(Mono.just(pageCaching));
 
         webTestClient.get().uri("/")
                 .exchange()
