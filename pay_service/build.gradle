@@ -21,17 +21,18 @@ repositories {
 sourceSets.main.java.srcDir "$projectDir/build/generated/src/main"
 
 openApiGenerate {
-    generatorName.set("spring")
+    generatorName.set("java")
     inputSpec.set("$rootDir/api-spec.yaml")
     outputDir.set("$projectDir/build/generated")
     modelPackage.set("ru.practicum.pay.server")
     apiPackage.set("ru.practicum.pay.server")
+    invokerPackage.set("ru.practicum.pay.server")
     ignoreFileOverride.set("$projectDir/.openapi-generator-ignore")
     configOptions.set([
             hideGenerationTimestamp: "true",
             requestMappingMode: "controller",
             interfaceOnly: "false",
-            library: "spring-boot",
+            library: "webclient",
             reactive: "true",
             useSpringBoot3: "true",
             useJakartaEe: "true",
@@ -54,6 +55,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'org.json:json:20231013'
+
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
 }
 
 tasks.named('test') {

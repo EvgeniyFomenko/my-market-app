@@ -22,6 +22,8 @@ services:
     build: ./pay_service/.
     ports:
       - "8081:8080"
+    environment:
+      - URL_AUTH_PROVIDER
   db:
     image: postgres
     container_name: db
