@@ -2,56 +2,42 @@ package ru.practicum.pay.server;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
-import java.util.Optional;
-
-
-@Controller
-public class PayController extends DefaultApi {
-    public PayController(PayService payService, ServerWebExchange exchange) {
+@RestController
+public class PayController extends ru.practicum.pay.server.DefaultApi {
+    public PayController(PayService payService) {
         this.payService = payService;
-        this.exchange = exchange;
     }
 
     private final PayService payService;
-    private final ServerWebExchange exchange;
 
-   public Mono<Balance> toPayPost(
-            @Parameter(name = "Quantity", description = "стоимость вещи", required = true) @Valid @RequestBody Quantity quantity,
-            @Parameter(hidden = true) final ServerWebExchange exchange
+    @PreAuthorize("hasAuthority('SERVICE')")
+    @PostMapping("/toPay")
+    public Mono<Balance> toPayPost(
+            @Parameter(name = "Quantity", description = "стоимость вещи", required = true) @Valid @RequestBody Quantity quantity
     ) {
-       return Mono.just(quantity).doOnNext(e -> payService.changeBalance(e.getQuantity())).flatMap(
+        return Mono.just(quantity).doOnNext(e -> payService.changeBalance(e.getQuantity())).flatMap(
                 e -> {
                     Balance balance = new Balance();
                     balance.setBalance(payService.getBalance());
-                   return Mono.just(balance);
+                    return Mono.just(balance);
                 }
         );
     }
 
-    public Mono<Balance> getBalanceGet( ) {
-//        Mono<Void> result = Mono.empty();
-
-//        exchange.getResponse().setStatusCode(HttpStatus.valueOf(200));
-//        for (MediaType mediaType : exchange.getRequest().getHeaders().getAccept()) {
-//            if (mediaType.isCompatibleWith(MediaType.valueOf("application/json"))) {
-//                String exampleString = "{ \"balance\" : \""+payService.getBalance()+"\" }";
-//                result = ApiUtil.getExampleResponse(exchange, MediaType.valueOf("application/json"), exampleString);
-//                break;
-                Balance balance = new ru.practicum.pay.server.Balance();
-                balance.setBalance(payService.getBalance());
-                return Mono.just(balance);
-//            }
-//        }
-
-
-//        return result.then(Mono.empty());
+    @PreAuthorize("hasAuthority('SERVICE')")
+    @GetMapping("/getBalance")
+    public Mono<Balance> getBalanceGet() {
+        Balance balance = new Balance();
+        balance.setBalance(payService.getBalance());
+        return Mono.just(balance);
     }
 }

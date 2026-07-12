@@ -2,7 +2,9 @@ package ru.practicum.mymarketapp.unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -20,10 +22,14 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.reset;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class CartItemCountServiceTest {
-    @Autowired
-    private CartItemCountService cartItemCountService;
+    public CartItemCountServiceTest(CartItemCountService cartItemCountService) {
+        this.cartItemCountService = cartItemCountService;
+
+    }
+
+    private final CartItemCountService cartItemCountService;
     @MockitoBean
     private CartItemCountRepository cartItemCountRepository;
     CartItemCount cartItemCount;

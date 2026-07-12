@@ -5,7 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import ru.practicum.mymarketapp.pojo.VariableSort;
 
-public class PagableUtil {
+public class PageableUtil {
     public static Pageable getPageable(int pageNumber, int pageSize, String sort){
         Pageable pageable = PageRequest.of(pageNumber-1, pageSize);;
 

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.User;
 import ru.practicum.mymarketapp.pojo.FormUser;
 import ru.practicum.mymarketapp.service.UserService;
@@ -18,13 +19,12 @@ public class UserController {
     }
 
     @GetMapping("/register")
-    public String register() {
-        return "register";
+    public Mono<String> register() {
+        return Mono.just("register");
     }
 
     @PostMapping("/register")
-    public String registerUser( @ModelAttribute FormUser formUser) {
-        userService.save(new User(null,formUser.username(),formUser.password())).subscribe();
-        return "redirect:/login";
+    public Mono<String> registerUser(@ModelAttribute FormUser formUser) {
+        return userService.save(new User(null,formUser.username(),formUser.password())).then(Mono.just("redirect:/login"));
     }
 }

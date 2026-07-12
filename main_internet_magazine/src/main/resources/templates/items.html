@@ -22,7 +22,10 @@
                     <a href="/cart/items"  th:if="${isLogin}" class="btn btn-secondary bi bi-cart4"> Корзина</a>
                     <a href="/item/add"  th:if="${isLogin}" class="btn btn-secondary bi bi-file-earmark-text"> Создать товар</a>
                     <a href="/login" th:if="${!isLogin}"  class="btn btn-secondary bi bi-file-earmark-text"> Войти</a>
+                    <p th:if = "${authName==null}" th:text = "Guest"></p>
                     <form method="POST" th:action="@{/logout}">
+                        <p th:if = "${authName != null}" th:text = "${authName}"></p>
+
                         <button type="submit" th:if="${isLogin}" class="btn btn-secondary bi bi-file-earmark-text">Выйти</button>
                     </form>
                 </div>

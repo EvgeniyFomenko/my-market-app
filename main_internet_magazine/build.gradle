@@ -57,6 +57,11 @@ dependencies {
     implementation'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
+    implementation 'org.projectlombok:lombok:1.18.46'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
+    implementation 'org.apache.logging.log4j:log4j-core:2.26.0'
+    implementation 'org.apache.logging.log4j:log4j-api:2.26.0'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 
     //test
     testImplementation 'org.springframework.boot:spring-boot-webtestclient'
@@ -80,6 +85,7 @@ dependencies {
     implementation 'jakarta.validation:jakarta.validation-api:3.1.1'
     implementation 'org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.13'
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.2'
+    implementation 'org.springframework.boot:spring-boot-devtools'
 
 
 

@@ -53,3 +53,10 @@ components:
           example: "200"
       required:
         - quantity
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []

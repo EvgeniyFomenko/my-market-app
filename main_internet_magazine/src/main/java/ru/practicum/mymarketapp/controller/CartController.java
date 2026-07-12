@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.thymeleaf.extras.springsecurity6.auth.Authorization;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.dto.ItemDto;
@@ -50,7 +51,7 @@ public class CartController {
     }
 
     private Mono<String> getEmptyCart(Model model) {
-      return   orderService.getBalance().map(balance -> {
+        return orderService.getBalance().map(balance -> {
             model.addAllAttributes(Map.of("items", new ArrayList<ItemDto>(), "total", 0, "balance", balance.getBalance()));
             return "cart";
 
@@ -64,7 +65,7 @@ public class CartController {
         String action = formData.getAction();
         String userLogin = authentication.getName();
         return itemService.cacheItemClear().then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin))
-                .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(),id))
+                .flatMap(order -> cartItemCountService.createOrFindByOrderAndItemId(order.getId(), id))
                 .flatMap(cartItemCount1 -> cartItemCountService.changePriceCartByAction(cartItemCount1, action))
                 .flatMap(e -> orderService.changePriceOrderByActionOnCartItemCount(action, e))
                 .flatMap(e -> {

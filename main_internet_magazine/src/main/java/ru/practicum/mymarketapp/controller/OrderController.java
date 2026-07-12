@@ -5,6 +5,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.thymeleaf.extras.springsecurity6.auth.Authorization;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.dto.ItemDtoConverter;
 import ru.practicum.mymarketapp.entity.dto.OrderDtoConverter;
@@ -59,8 +60,13 @@ public class OrderController {
     @Transactional
     public Mono<String> setBuy(Model model, Authentication authentication) {
         String userLogin = authentication.getName();
-       return itemService.cachePageClear().then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin)).flatMap(order ->
-                    orderService.updatePaid(order).thenReturn(order)
+       return itemService.cachePageClear().then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin))
+               .flatMap(order ->
+                  cartItemCountService.findItemByOrderId(order.getId()).collectList().doOnNext(e-> {
+                       if (e.isEmpty()) {
+                           throw new RuntimeException("Карзина пустая");
+                       }
+                   }).then(orderService.updatePaid(order)).thenReturn(order)
                ).map(order-> {
            model.addAttribute("newOrder", true);
            return "redirect:orders/"+order.getId();

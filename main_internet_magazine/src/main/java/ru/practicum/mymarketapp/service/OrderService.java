@@ -1,5 +1,8 @@
 package ru.practicum.mymarketapp.service;
 
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,37 +20,36 @@ import java.math.BigDecimal;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final ItemRepository itemRepository;
-    private final DefaultApi defaultApi;
+    private final ru.practicum.mymarketapp.service.DefaultApi defaultApi;
     private final CarUserService carUserService;
+    private final ReactiveOAuth2AuthorizedClientManager authorizedClientManager;
 
-    public OrderService(OrderRepository orderRepository, ItemRepository itemRepository, DefaultApi defaultApi, CarUserService carUserService) {
+    public OrderService(OrderRepository orderRepository, ItemRepository itemRepository, DefaultApi defaultApi, CarUserService carUserService, ReactiveOAuth2AuthorizedClientManager authorizedClientManager) {
         this.orderRepository = orderRepository;
         this.itemRepository = itemRepository;
         this.defaultApi = defaultApi;
         this.carUserService = carUserService;
+        this.authorizedClientManager = authorizedClientManager;
     }
 
     public Mono<Order> findNewOrderOrTakeNewByUserLoginOrNew(String userLogin) {
 
         return   this.findNewOrderOrTakeNewByUserLogin(userLogin)
-                .switchIfEmpty(Mono.fromSupplier(() -> {
-                            Order orderNew = new Order();
-                            orderNew.setPaid(false);
-                            orderNew.setTotal(BigDecimal.ZERO);
-                            return orderNew;
-                        }
-                )
-                        .flatMap(orderRepository::save)
                 .flatMap(order -> carUserService.setOrder(userLogin, order))
-                .flatMap(cartUser-> orderRepository.findById(cartUser.getCartId())));
+                .flatMap(cartUser-> orderRepository.findById(cartUser.getCartId()));
     }
 
 
-    public Mono<Order> findNewOrderOrTakeNewByUserLogin(String userLogin) {
+    private Mono<Order> findNewOrderOrTakeNewByUserLogin(String userLogin) {
         return  carUserService.getCartUserByUserLogin(userLogin)
                 .flatMap(e-> orderRepository.findById(e.getCartId()))
                 .filter(order->!order.isPaid())
-                .singleOrEmpty();
+                .singleOrEmpty().switchIfEmpty(Mono.fromSupplier(() -> {
+                    Order orderNew = new Order();
+                    orderNew.setPaid(false);
+                    orderNew.setTotal(BigDecimal.ZERO);
+                    return orderNew;
+                }).flatMap(orderRepository::save));
     }
 
     public Mono<Order> findNewOrderOrTakeNew() {
@@ -86,12 +88,21 @@ public class OrderService {
     public Mono<Void> updatePaid(Order order) {
         Quantity newQuantity = new Quantity().quantity(order.getTotal().toString());
         order.setPaid(true);
+        return getAuthorizedClient().doOnNext( e-> defaultApi.getApiClient().setBearerToken(e.getAccessToken().getTokenValue())).then(defaultApi.toPayPost(newQuantity)).then(orderRepository.save(order)).thenEmpty(Mono.empty()) ;
 
-        return defaultApi.toPayPost(newQuantity).then(orderRepository.save(order)).thenEmpty(Mono.empty()) ;
     }
 
     public Mono<Balance> getBalance() {
-        return defaultApi.getBalanceGet();
+        return getAuthorizedClient().flatMap(client-> {
+                    String token = client.getAccessToken().getTokenValue();
+                    defaultApi.getApiClient().setBearerToken(token);
+                    return defaultApi.getBalanceGet(); // запрос выполняетс
+                        }
+                );
+    }
+
+    public Mono<OAuth2AuthorizedClient> getAuthorizedClient() {
+        return authorizedClientManager.authorize(OAuth2AuthorizeRequest.withClientRegistrationId("keycloak").principal("system").build());
     }
 
     public Mono<Order> findOrderById(Long id) {
@@ -128,8 +139,7 @@ public class OrderService {
                             }
 
                             if (total.compareTo(BigDecimal.ZERO) == 0) {
-                                delete(order).subscribe();
-                                return Mono.just(order);
+                                return delete(order).then(Mono.just(order));
                             } else {
                                 order.setTotal(total);
                                 return orderRepository.save(order);

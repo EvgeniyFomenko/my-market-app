@@ -27,16 +27,18 @@ public class CarUserService {
     }
 
     public Flux<CartUser> getCartUserByUserLogin(String login) {
-       return userRepository.getUserByLogin(login).flux().flatMap(user -> cartUserRepository.findCartUserByUserId(user.getId()));
+       return userRepository.getUserByLogin(login).flux().flatMap(user -> cartUserRepository.findCartUserByUserId(user.getId())).switchIfEmpty(Flux.empty());
     }
 
     public Mono<CartUser> setOrder(String userLogin, Order order) {
-       return userRepository.getUserByLogin(userLogin).doOnNext(e-> System.out.println("User cartUser id "+ e.getLogin())).map(user-> {
-            CartUser cartUser = new CartUser();
-            cartUser.setCartId(order.getId());
-            cartUser.setUserId(user.getId());
-            return cartUser;
-        }).flatMap(cartUserRepository::save);
+       return cartUserRepository.findByCartId(order).switchIfEmpty(
+               userRepository.getUserByLogin(userLogin).map(user-> {
+                   CartUser cartUser = new CartUser();
+                   cartUser.setCartId(order.getId());
+                   cartUser.setUserId(user.getId());
+                   return cartUser;
+               }).flatMap(cartUserRepository::save)
+       );
     }
 
 }

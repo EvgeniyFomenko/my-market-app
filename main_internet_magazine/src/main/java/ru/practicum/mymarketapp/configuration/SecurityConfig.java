@@ -1,36 +1,24 @@
 package ru.practicum.mymarketapp.configuration;
 
 import java.net.URI;
-
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
-import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
-import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.server.csrf.XorServerCsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.reactive.result.view.CsrfRequestDataValueProcessor;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.authentication.RedirectServerAuthenticationSuccessHandler;
 import org.springframework.security.web.server.authentication.logout.RedirectServerLogoutSuccessHandler;
-import org.springframework.security.web.server.csrf.CookieServerCsrfTokenRepository;
-import org.springframework.security.web.server.csrf.ServerCsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.server.csrf.WebSessionServerCsrfTokenRepository;
-import org.springframework.web.reactive.result.view.RequestDataValueProcessor;
-import ru.practicum.mymarketapp.repository.UserRepository;
-import ru.practicum.mymarketapp.repository.UserRoleRepository;
-import ru.practicum.mymarketapp.service.JpaReactiveUserDetailsManager;
 
 import static org.springframework.security.config.Customizer.withDefaults;
+
 
 @Configuration
 @EnableWebFluxSecurity
@@ -46,10 +34,15 @@ public class SecurityConfig {
         return new WebSessionServerCsrfTokenRepository();
     }
 
-//    @Bean
-//    public ReactiveUserDetailsService userDetailsService(UserRepository userRepository, UserRoleRepository userRoleRepository) {
-//        return new JpaReactiveUserDetailsManager(userRepository, userRoleRepository);
-//    }
+    @Bean
+    public JwtAuthenticationConverter jwtAuthenticationConverter() {
+        var converter = new JwtGrantedAuthoritiesConverter();
+        converter.setAuthorityPrefix(""); // чтобы роли были как "SERVICE", а не "ROLE_SERVICE"
+        converter.setAuthoritiesClaimName("realm_access.roles");
+        return new JwtAuthenticationConverter() {{
+            setJwtGrantedAuthoritiesConverter(converter);
+        }};
+    }
 
     // Настраиваем поведение при выходе
     @Bean
@@ -64,16 +57,14 @@ public class SecurityConfig {
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http,
                                                             RedirectServerLogoutSuccessHandler redirectServerLogoutSuccessHandler) {
         http
-//                .csrf(csrf ->csrf
-//                        .csrfTokenRepository(CookieServerCsrfTokenRepository.withHttpOnlyFalse())
-//                        .csrfTokenRequestHandler(serverCsrfTokenRequestAttributeHandler())
-//                )
-                .csrf((csrf) -> csrf.disable()
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .csrf(ServerHttpSecurity.CsrfSpec::disable
                 )
                 // Явно разрешаем доступ к /login и / для всех
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/", "/login", "/register").permitAll()
-                        .pathMatchers(HttpMethod.POST, "/**").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/item/add").hasAnyRole("SELLER", "ADMIN")
+                        .pathMatchers(HttpMethod.GET, "/item/add").hasAnyRole("SELLER", "ADMIN")
                         .anyExchange().authenticated()
                 )
                 // Настраиваем форму логина
@@ -106,8 +97,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CsrfRequestDataValueProcessor csrfRequestDataValueProcessor(){
-      return   new CsrfRequestDataValueProcessor();
+    public CsrfRequestDataValueProcessor csrfRequestDataValueProcessor() {
+        return new CsrfRequestDataValueProcessor();
     }
 }
 

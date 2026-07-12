@@ -10,10 +10,11 @@ services:
       - SPRING_DATASOURCE_USERNAME=back
       - SPRING_DATASOURCE_PASSWORD=123
       - REDIS_DATASOURCE_URL=redis
-      - URL_AUTH_PROVIDER = http://192.168.1.4:30238/realms/master
-      - CLIENT_SECRET_CODE = I3jPV3KhJl2vkCW5qK9SwaAwz0PkY7rG
-      - CLIENT_SECRET_ID = yandex-test
-      - CLIENT_SECRET_PROVIDER = keycloak
+      - URL_AUTH_PROVIDER=http://192.168.1.4:30238/realms/master
+      - CLIENT_SECRET_CODE=I3jPV3KhJl2vkCW5qK9SwaAwz0PkY7rG
+      - CLIENT_SECRET_ID=yandex-test
+      - CLIENT_SECRET_PROVIDER=keycloak
+      - API_BASE_URL=http://pay-service:8080
     depends_on:
       - db
       - redis
@@ -23,7 +24,7 @@ services:
     ports:
       - "8081:8080"
     environment:
-      - URL_AUTH_PROVIDER
+      - URL_AUTH_PROVIDER=http://192.168.1.4:30238/realms/master
   db:
     image: postgres
     container_name: db

@@ -2,7 +2,9 @@ package ru.practicum.mymarketapp.unit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,10 +23,13 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.reset;
 
-@SpringBootTest
+@ExtendWith(MockitoExtension.class)
 public class OrderServiceTest {
-    @Autowired
-    private OrderService orderService;
+    public OrderServiceTest(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    private final OrderService orderService;
     @MockitoBean
     private OrderRepository orderRepository;
     @MockitoBean
