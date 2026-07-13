@@ -9,6 +9,8 @@
     <include file="002-init-item-schema.xml" relativeToChangelogFile="true"/>
     <include file="003-init-cartItemcount-shema.xml" relativeToChangelogFile="true"/>
     <include file="004-init-order-shema.xml" relativeToChangelogFile="true"/>
-
+    <include file="005-init-user-schema.xml" relativeToChangelogFile="true"/>
+    <include file="006-init-cart-user-schema.xml" relativeToChangelogFile="true"/>
+    <include file="007-init-roles-user-schema.xml" relativeToChangelogFile="true"/>
 
 </databaseChangeLog>

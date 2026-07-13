@@ -1,5 +1,6 @@
 package ru.practicum.mymarketapp.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -9,11 +10,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.Item;
-import ru.practicum.mymarketapp.entity.Order;
 import ru.practicum.mymarketapp.pojo.PageCaching;
 import ru.practicum.mymarketapp.pojo.PageableCaching;
 import ru.practicum.mymarketapp.repository.ItemRepository;
-
 import java.util.Objects;
 
 @Service
@@ -40,17 +39,12 @@ public class ItemService {
         } else {
             page = itemRepository.findItemByTitle(search,pageable);
         }
-        Mono<Order> orderMono = orderService.findNewOrder();
-
-        return  page.flatMap(item ->
-                orderMono.flatMap(order-> cartItemCountService.findByItemIdAndOrderId(item.getId(),order.getId()).map(cartItemCountMono -> {
-                            item.setCount(cartItemCountMono.getQuantity());
-                            return item;
-                        }))
-                        .switchIfEmpty(Mono.just(item))
-        ).collectList()
-                .zipWith(this.itemRepository.count())
-                .map(p -> new PageCaching(p.getT1(),new PageableCaching(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort().get().findFirst().orElse(new Sort.Order(Sort.Direction.ASC,"unsorted")).getProperty()), p.getT2()));
+              return page.collectList().zipWith(itemRepository.count())
+                .map(p ->{
+                    PageableCaching pageableCaching = new PageableCaching(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort().get().findFirst().orElse(new Sort.Order(Sort.Direction.ASC,"unsorted")).getProperty());
+                    PageCaching pageCaching = new PageCaching(p.getT1(), pageableCaching, p.getT2());
+                    return pageCaching;
+                } );
 
     }
     @CacheEvict(

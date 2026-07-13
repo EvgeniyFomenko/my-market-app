@@ -60,14 +60,14 @@ public class CartItemCountService {
                     if (Action.PLUS.getFullName().equals(action) || Action.MINUS.getFullName().equals(action)) {
                         cartItemCount1.setQuantity(Action.PLUS.getFullName().equals(action) ? cartItemCount1.getQuantity() + 1 : cartItemCount1.getQuantity() - 1);
                         if (cartItemCount1.getQuantity() == 0) {
-                            delete(cartItemCount1).subscribe();
+                          return  delete(cartItemCount1).then(Mono.just(cartItemCount1));
                         } else {
                            return save(cartItemCount1);
                         }
                     } else if (Action.DELETE.getFullName().equals(action)) {
-                        delete(cartItemCount1).subscribe();
+                      return delete(cartItemCount1).then(Mono.just(cartItemCount1));
                     }
-                    return Mono.just(cartItemCount1) ;
+                    return Mono.just(cartItemCount1);
                 });
     }
 

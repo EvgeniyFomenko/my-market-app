@@ -1,27 +1,20 @@
 package ru.practicum.mymarketapp.controller;
 
-import net.bytebuddy.description.annotation.AnnotationValue;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.testcontainers.context.ImportTestcontainers;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.cache.CacheManager;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.RedisTestContainer;
-import ru.practicum.mymarketapp.configuration.RedisCustomCacheConfiguration;
 import ru.practicum.mymarketapp.entity.CartItemCount;
 import ru.practicum.mymarketapp.entity.Item;
 import ru.practicum.mymarketapp.entity.Order;
@@ -81,7 +74,7 @@ public class ItemControllerTest {
     public void getItems(){
         Pageable pageable = PageRequest.of(1, 5);
         PageCaching pageCaching = new PageCaching(List.of(item),new PageableCaching(pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort().get().findFirst().orElse(new Sort.Order(Sort.Direction.ASC,"unsorted")).getProperty()), 1L);
-        Mockito.when(itemService.findItemsByTitle("", PagableUtil.getPageable(1,5, VariableSort.NO.getFullName()))).thenReturn(Mono.just(pageCaching));
+        Mockito.when(itemService.findItemsByTitle("", PageableUtil.getPageable(1,5, VariableSort.NO.getFullName()))).thenReturn(Mono.just(pageCaching));
 
         webTestClient.get().uri("/")
                 .exchange()

@@ -1,9 +1,11 @@
 package ru.practicum.mymarketapp.controller;
 
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.thymeleaf.extras.springsecurity6.auth.Authorization;
 import reactor.core.publisher.Mono;
 import ru.practicum.mymarketapp.entity.dto.ItemDtoConverter;
 import ru.practicum.mymarketapp.entity.dto.OrderDtoConverter;
@@ -27,13 +29,14 @@ public class OrderController {
     }
 
     @GetMapping("/orders")
-    public Mono<String> getOrders(Model model) {
-        return orderService.findPaidOrdersIsPaidTrue()
+    public Mono<String> getOrders(Model model, Authentication authentication) {
+        String userLogin = authentication.getName();
+        return orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin)
                 .flatMap(e->
                          cartItemCountService.findItemByOrderId(e.getId()).collectList().zipWith(Mono.just(e))
                                 .map(p -> OrderDtoConverter.toDto(p.getT2(), p.getT1().stream().map(ItemDtoConverter::toDto)
                                         .collect(Collectors.toList())))
-                    ).collectList().flatMap(
+                    ).flatMap(
                         e-> {
                             model.addAttribute("orders", e);
                             return Mono.just("orders");
@@ -55,10 +58,15 @@ public class OrderController {
 
     @PostMapping("/buy")
     @Transactional
-    public Mono<String> setBuy(Model model) {
-
-       return itemService.cachePageClear().then(orderService.findNewOrderOrTakeNew()).flatMap(order ->
-                    orderService.updatePaid(order).thenReturn(order)
+    public Mono<String> setBuy(Model model, Authentication authentication) {
+        String userLogin = authentication.getName();
+       return itemService.cachePageClear().then(orderService.findNewOrderOrTakeNewByUserLoginOrNew(userLogin))
+               .flatMap(order ->
+                  cartItemCountService.findItemByOrderId(order.getId()).collectList().doOnNext(e-> {
+                       if (e.isEmpty()) {
+                           throw new RuntimeException("Карзина пустая");
+                       }
+                   }).then(orderService.updatePaid(order)).thenReturn(order)
                ).map(order-> {
            model.addAttribute("newOrder", true);
            return "redirect:orders/"+order.getId();

@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 @Component
 public class BalanceStorage {
     public BalanceStorage() {
-
         balance = BigDecimal.valueOf((int)(Math.random() * ((1000 - 200) + 1)) + 200);
     }
 

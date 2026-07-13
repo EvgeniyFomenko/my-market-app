@@ -3,7 +3,7 @@ info:
   title: Sample API
   version: 1.0.0
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: http://localhost:8081/api/v1
   - url: https://api.example.com/v1
 paths:
   /getBalance:
@@ -53,3 +53,10 @@ components:
           example: "200"
       required:
         - quantity
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
